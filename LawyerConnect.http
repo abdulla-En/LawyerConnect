@@ -1,0 +1,613 @@
+@LawyerConnect_HostAddress = http://localhost:5128
+@ContentType = application/json
+
+### Variables (will be set after login)
+# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJ3b3JrZmxvd0B0ZXN0LmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IlVzZXIiLCJleHAiOjE3NjUyNjk5NzEsImlzcyI6Ikxhd3llckNvbm5lY3QiLCJhdWQiOiJMYXd5ZXJDb25uZWN0In0.K1EIayn-GulQlhMzuFcdA0DkilBuElFfTKMgzV67fqA
+@UserToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJ3b3JrZmxvd0B0ZXN0LmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IlVzZXIiLCJleHAiOjE3NjUyNjk5NzEsImlzcyI6Ikxhd3llckNvbm5lY3QiLCJhdWQiOiJMYXd5ZXJDb25uZWN0In0.K1EIayn-GulQlhMzuFcdA0DkilBuElFfTKMgzV67fqA
+@AdminToken = 
+@LawyerToken = 
+@UserId =  
+@LawyerId = 1
+@BookingId = 1
+@PaymentSessionId = 1
+
+# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJsYXd5ZXJAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJleHAiOjE3NjUyNzEwMDMsImlzcyI6Ikxhd3llckNvbm5lY3QiLCJhdWQiOiJMYXd5ZXJDb25uZWN0In0.TCMACGWwrnMsKwiFXf43Q-_uKXJwqWzruB8akJB3U0A
+###############################################
+# AUTHENTICATION ENDPOINTS
+###############################################
+
+### 1. Register User (Default Role)
+POST {{LawyerConnect_HostAddress}}/api/auth/register
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "abdulla",
+  "email": "abdulla067@gmail.com",
+  "password": "SecurePass123!",
+  "phone": "01112514886",
+  "city": "6th of October"
+}
+
+### 1b. Register User with Explicit Role
+POST {{LawyerConnect_HostAddress}}/api/auth/register
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "John Doe",
+  "email": "john.doe@example.com",
+  "password": "SecurePass123!",
+  "phone": "+1234567890",
+  "city": "New York",
+  "role": "User"
+}
+
+### 2. Register Another User (for testing)
+POST {{LawyerConnect_HostAddress}}/api/auth/register
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "Jane Smith",
+  "email": "jane.smith@example.com",
+  "password": "SecurePass123!",
+  "phone": "+1234567891",
+  "city": "Los Angeles"
+}
+
+### 3. Register Admin User (Requires AdminSecret)
+POST {{LawyerConnect_HostAddress}}/api/auth/register
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "Admin User",
+  "email": "admin@lawyerconnect.com",
+  "password": "AdminPass123!",
+  "phone": "+1234567892",
+  "city": "Washington DC",
+  "role": "Admin",
+  "adminSecret": "LawyerConnect_Admin_Registration_Secret_2024"
+}
+
+### 3b. Register Lawyer User
+POST {{LawyerConnect_HostAddress}}/api/auth/register
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "Lawyer User",
+  "email": "lawyer@example.com",
+  "password": "LawyerPass123!",
+  "phone": "+1234567893",
+  "city": "Los Angeles",
+  "role": "Lawyer"
+}
+
+### 4. Login as User
+# @name loginUser
+POST {{LawyerConnect_HostAddress}}/api/auth/login
+Content-Type: {{ContentType}}
+
+{
+  "email": "lawyer@example.com",
+  "password": "LawyerPass123!"
+}
+
+### 5. Login as Lawyer (after registering as lawyer)
+# @name loginLawyer
+POST {{LawyerConnect_HostAddress}}/api/auth/login
+Content-Type: {{ContentType}}
+
+{
+  "email": "lawyer@example.com",
+  "password": "LawyerPass123!"
+}
+
+### 6. Login as Admin
+# @name loginAdmin
+POST {{LawyerConnect_HostAddress}}/api/auth/login
+Content-Type: {{ContentType}}
+
+{
+  "email": "admin@lawyerconnect.com",
+  "password": "AdminPass123!"
+}
+
+### 7. Get Current User (Me) - Requires Authentication
+GET {{LawyerConnect_HostAddress}}/api/auth/me
+Authorization: Bearer {{UserToken}}
+
+### 8. Login with Invalid Credentials (Error Case)
+POST {{LawyerConnect_HostAddress}}/api/auth/login
+Content-Type: {{ContentType}}
+
+{
+  "email": "nonexistent@example.com",
+  "password": "WrongPassword"
+}
+
+### 9. Register with Duplicate Email (Error Case)
+POST {{LawyerConnect_HostAddress}}/api/auth/register
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "Duplicate User",
+  "email": "john.doe@example.com",
+  "password": "AnotherPass123!",
+  "phone": "+1234567893",
+  "city": "Boston"
+}
+
+###############################################
+# USERS ENDPOINTS
+###############################################
+
+### 10. Get All Users (Admin Only) - Paginated
+GET {{LawyerConnect_HostAddress}}/api/users?page=1&limit=10
+Authorization: Bearer {{AdminToken}}
+
+### 11. Get All Users - Page 2
+GET {{LawyerConnect_HostAddress}}/api/users?page=2&limit=10
+Authorization: Bearer {{AdminToken}}
+
+### 12. Get All Users - Different Limit
+GET {{LawyerConnect_HostAddress}}/api/users?page=1&limit=5
+Authorization: Bearer {{AdminToken}}
+
+### 13. Update User Profile (Authenticated User)
+PUT {{LawyerConnect_HostAddress}}/api/users/update
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "John Updated Doe",
+  "phone": "+1987654321",
+  "city": "San Francisco"
+}
+
+### 14. Update User Profile - Partial Update
+PUT {{LawyerConnect_HostAddress}}/api/users/update
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "John Partial Update",
+  "phone": "",
+  "city": ""
+}
+
+### 15. Change Password (Authenticated User)
+PUT {{LawyerConnect_HostAddress}}/api/users/change-password
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "currentPassword": "SecurePass123!",
+  "newPassword": "NewSecurePass456!"
+}
+
+### 16. Change Password - Wrong Current Password (Error Case)
+PUT {{LawyerConnect_HostAddress}}/api/users/change-password
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "currentPassword": "WrongPassword",
+  "newPassword": "NewSecurePass456!"
+}
+
+### 16b. Update User Role (Admin Only)
+PUT {{LawyerConnect_HostAddress}}/api/users/update-role
+Authorization: Bearer {{AdminToken}}
+Content-Type: {{ContentType}}
+
+{
+  "userId": {{UserId}},
+  "role": "Lawyer"
+}
+
+### 16c. Update User Role to Admin (Admin Only)
+PUT {{LawyerConnect_HostAddress}}/api/users/update-role
+Authorization: Bearer {{AdminToken}}
+Content-Type: {{ContentType}}
+
+{
+  "userId": {{UserId}},
+  "role": "Admin"
+}
+
+### 16d. Update User Role - Invalid Role (Error Case)
+PUT {{LawyerConnect_HostAddress}}/api/users/update-role
+Authorization: Bearer {{AdminToken}}
+Content-Type: {{ContentType}}
+
+{
+  "userId": {{UserId}},
+  "role": "InvalidRole"
+}
+
+### 16e. Update User Role - Non-Admin User (Error Case - 403)
+PUT {{LawyerConnect_HostAddress}}/api/users/update-role
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "userId": {{UserId}},
+  "role": "Lawyer"
+}
+
+### 17. Get Users Without Admin Role (Error Case - 403)
+GET {{LawyerConnect_HostAddress}}/api/users?page=1&limit=10
+Authorization: Bearer {{UserToken}}
+
+### 18. Update Profile Without Authentication (Error Case - 401)
+PUT {{LawyerConnect_HostAddress}}/api/users/update
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "Unauthorized Update",
+  "phone": "+1111111111",
+  "city": "Unauthorized City"
+}
+
+###############################################
+# LAWYERS ENDPOINTS
+###############################################
+
+### 19. Register as Lawyer (Requires Authentication - userId extracted from token)
+POST {{LawyerConnect_HostAddress}}/api/lawyers/register
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "specialization": "Criminal Law",
+  "experienceYears": 10,
+  "price": 150.00,
+  "address": "123 Legal Street, New York, NY 10001",
+  "latitude": 40.7128,
+  "longitude": -74.0060
+}
+
+### 20. Register Another Lawyer (userId extracted from token automatically)
+POST {{LawyerConnect_HostAddress}}/api/lawyers/register
+Authorization: Bearer {{LawyerToken}}
+Content-Type: {{ContentType}}
+
+{
+  "specialization": "Corporate Law",
+  "experienceYears": 15,
+  "price": 250.00,
+  "address": "456 Business Ave, Los Angeles, CA 90001",
+  "latitude": 34.0522,
+  "longitude": -118.2437
+}
+
+### 21. Get All Lawyers - Paginated (Public)
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=1&limit=10
+
+### 22. Get All Lawyers - Page 2
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=2&limit=10
+
+### 23. Get All Lawyers - Different Limit
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=1&limit=5
+
+### 24. Get Lawyer by ID (Public)
+GET {{LawyerConnect_HostAddress}}/api/lawyers/{{LawyerId}}
+
+### 24b. Get My Lawyer Profile (Lawyer/Admin - Uses Token)
+GET {{LawyerConnect_HostAddress}}/api/lawyers/me
+Authorization: Bearer {{LawyerToken}}
+
+### 25. Get Lawyer by ID - Invalid ID (Error Case)
+GET {{LawyerConnect_HostAddress}}/api/lawyers/99999
+
+### 26. Verify Lawyer (Admin Only)
+PUT {{LawyerConnect_HostAddress}}/api/lawyers/{{LawyerId}}/verify
+Authorization: Bearer {{AdminToken}}
+
+### 27. Verify Lawyer - Without Admin Role (Error Case - 403)
+PUT {{LawyerConnect_HostAddress}}/api/lawyers/{{LawyerId}}/verify
+Authorization: Bearer {{UserToken}}
+
+### 28. Register Lawyer Without Authentication (Error Case - 401)
+POST {{LawyerConnect_HostAddress}}/api/lawyers/register
+Content-Type: {{ContentType}}
+
+{
+  "specialization": "Family Law",
+  "experienceYears": 5,
+  "price": 100.00,
+  "address": "789 Family Road, Chicago, IL 60601",
+  "latitude": 41.8781,
+  "longitude": -87.6298
+}
+
+###############################################
+# BOOKINGS ENDPOINTS
+###############################################
+
+### 29. Create Booking (Authenticated User)
+POST {{LawyerConnect_HostAddress}}/api/bookings
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "lawyerId": {{LawyerId}},
+  "date": "2024-12-25T10:00:00Z"
+}
+
+### 30. Create Another Booking
+POST {{LawyerConnect_HostAddress}}/api/bookings
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "lawyerId": {{LawyerId}},
+  "date": "2024-12-26T14:00:00Z"
+}
+
+### 30b. Create Booking as Admin on behalf of another user (Admin can set userId)
+POST {{LawyerConnect_HostAddress}}/api/bookings
+Authorization: Bearer {{AdminToken}}
+Content-Type: {{ContentType}}
+
+{
+  "userId": {{UserId}},   // only Admin can override userId
+  "lawyerId": {{LawyerId}},
+  "date": "2024-12-27T10:00:00Z"
+}
+
+### 31. Get Booking by ID (Authenticated)
+GET {{LawyerConnect_HostAddress}}/api/bookings/{{BookingId}}
+Authorization: Bearer {{UserToken}}
+
+### 32. Get Booking by ID - Invalid ID (Error Case)
+GET {{LawyerConnect_HostAddress}}/api/bookings/99999
+Authorization: Bearer {{UserToken}}
+
+### 33. Get User's Bookings (Authenticated User)
+GET {{LawyerConnect_HostAddress}}/api/bookings/user
+Authorization: Bearer {{UserToken}}
+
+### 34. Get Lawyer's Bookings (Lawyer - Uses Token, No lawyerId needed)
+GET {{LawyerConnect_HostAddress}}/api/bookings/lawyer
+Authorization: Bearer {{LawyerToken}}
+
+### 35. Get Lawyer's Bookings - As Admin (Can query any lawyer)
+GET {{LawyerConnect_HostAddress}}/api/bookings/lawyer?lawyerId={{LawyerId}}
+Authorization: Bearer {{AdminToken}}
+
+### 36. Get Lawyer's Bookings - Lawyer trying to query another lawyer (Error Case - 403)
+GET {{LawyerConnect_HostAddress}}/api/bookings/lawyer?lawyerId=999
+Authorization: Bearer {{LawyerToken}}
+
+### 37. Update Booking Status (Admin or Lawyer)
+PUT {{LawyerConnect_HostAddress}}/api/bookings/{{BookingId}}/status
+Authorization: Bearer {{AdminToken}}
+Content-Type: {{ContentType}}
+
+{
+  "status": "Confirmed"
+}
+
+### 38. Update Booking Status - As Lawyer
+PUT {{LawyerConnect_HostAddress}}/api/bookings/{{BookingId}}/status
+Authorization: Bearer {{LawyerToken}}
+Content-Type: {{ContentType}}
+
+{
+  "status": "Completed"
+}
+
+### 39. Update Booking Status - Invalid Status (Error Case)
+PUT {{LawyerConnect_HostAddress}}/api/bookings/{{BookingId}}/status
+Authorization: Bearer {{AdminToken}}
+Content-Type: {{ContentType}}
+
+{
+  "status": ""
+}
+
+### 40. Create Booking Without Authentication (Error Case - 401)
+POST {{LawyerConnect_HostAddress}}/api/bookings
+Content-Type: {{ContentType}}
+
+{
+  "userId": 1,
+  "lawyerId": 1,
+  "date": "2024-12-25T10:00:00Z"
+}
+
+### 41. Get User Bookings Without Authentication (Error Case - 401)
+GET {{LawyerConnect_HostAddress}}/api/bookings/user
+
+### 42. Get Lawyer Bookings Without Proper Role (Error Case - 403)
+GET {{LawyerConnect_HostAddress}}/api/bookings/lawyer?lawyerId={{LawyerId}}
+Authorization: Bearer {{UserToken}}
+
+###############################################
+# PAYMENTS ENDPOINTS
+###############################################
+
+### 43. Create Payment Session (Authenticated User)
+POST {{LawyerConnect_HostAddress}}/api/payments/create-session
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "bookingId": {{BookingId}},
+  "amount": 150.00,
+  "provider": "Stripe"
+}
+
+### 44. Create Another Payment Session
+POST {{LawyerConnect_HostAddress}}/api/payments/create-session
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "bookingId": {{BookingId}},
+  "amount": 250.00,
+  "provider": "PayPal"
+}
+
+### 45. Confirm Payment (Authenticated User)
+POST {{LawyerConnect_HostAddress}}/api/payments/confirm
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "sessionId": {{PaymentSessionId}},
+  "providerSessionId": "stripe_session_1234567890"
+}
+
+### 46. Confirm Payment - Another Session
+POST {{LawyerConnect_HostAddress}}/api/payments/confirm
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "sessionId": {{PaymentSessionId}},
+  "providerSessionId": "paypal_session_9876543210"
+}
+
+### 47. Create Payment Session Without Authentication (Error Case - 401)
+POST {{LawyerConnect_HostAddress}}/api/payments/create-session
+Content-Type: {{ContentType}}
+
+{
+  "bookingId": 1,
+  "amount": 150.00,
+  "provider": "Stripe"
+}
+
+### 48. Confirm Payment Without Authentication (Error Case - 401)
+POST {{LawyerConnect_HostAddress}}/api/payments/confirm
+Content-Type: {{ContentType}}
+
+{
+  "sessionId": 1,
+  "providerSessionId": "test_session_123"
+}
+
+###############################################
+# RATE LIMITING TEST
+###############################################
+
+### 49. Test Rate Limiting - Make 6 requests quickly (5th should succeed, 6th should return 429)
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=1&limit=10
+
+### 50. Rate Limit Test 2
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=1&limit=10
+
+### 51. Rate Limit Test 3
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=1&limit=10
+
+### 52. Rate Limit Test 4
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=1&limit=10
+
+### 53. Rate Limit Test 5
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=1&limit=10
+
+### 54. Rate Limit Test 6 (Should return 429 Too Many Requests)
+GET {{LawyerConnect_HostAddress}}/api/lawyers?page=1&limit=10
+
+###############################################
+# COMPLETE WORKFLOW TEST
+###############################################
+
+### 55. Complete Workflow: Register -> Login -> Create Booking -> Create Payment -> Confirm Payment
+### Step 1: Register New User
+POST {{LawyerConnect_HostAddress}}/api/auth/register
+Content-Type: {{ContentType}}
+
+{
+  "fullName": "Workflow Test User",
+  "email": "workflow@test.com",
+  "password": "TestPass123!",
+  "phone": "+1999999999",
+  "city": "Test City"
+}
+
+### Step 2: Login
+POST {{LawyerConnect_HostAddress}}/api/auth/login
+Content-Type: {{ContentType}}
+
+{
+  "email": "workflow@test.com",
+  "password": "TestPass123!"
+}
+
+### Step 3: Get Current User Info
+GET {{LawyerConnect_HostAddress}}/api/auth/me
+Authorization: Bearer {{UserToken}}
+
+### Step 4: Register as Lawyer (userId extracted from token)
+POST {{LawyerConnect_HostAddress}}/api/lawyers/register
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "specialization": "Test Law",
+  "experienceYears": 3,
+  "price": 100.00,
+  "address": "Test Address",
+  "latitude": 0.0,
+  "longitude": 0.0
+}
+
+### Step 5: Create Booking
+POST {{LawyerConnect_HostAddress}}/api/bookings
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "lawyerId": {{LawyerId}},
+  "date": "2024-12-30T10:00:00Z"
+}
+
+### Step 6: Create Payment Session
+POST {{LawyerConnect_HostAddress}}/api/payments/create-session
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "bookingId": {{BookingId}},
+  "amount": 100.00,
+  "provider": "TestProvider"
+}
+
+### Step 7: Confirm Payment
+POST {{LawyerConnect_HostAddress}}/api/payments/confirm
+Authorization: Bearer {{UserToken}}
+Content-Type: {{ContentType}}
+
+{
+  "sessionId": {{PaymentSessionId}},
+  "providerSessionId": "test_provider_session_12345"
+}
+
+###############################################
+# NOTES
+###############################################
+# 
+# IMPORTANT: 
+# 1. After running login requests (4, 5, 6), copy the token from the response
+#    and paste it into the variables at the top (@UserToken, @LawyerToken, @AdminToken)
+# 
+# 2. After creating a lawyer (19), copy the lawyer ID from the response
+#    and update @LawyerId variable
+#
+# 3. After creating a booking (29), copy the booking ID from the response
+#    and update @BookingId variable
+#
+# 4. After creating a payment session (43), copy the session ID from the response
+#    and update @PaymentSessionId variable
+#
+# 5. The UserId should be extracted from the JWT token or from the /api/auth/me response
+#
+# 6. Rate limiting is set to 5 requests per 60 seconds per IP+Path combination
+#    Check X-RateLimit-* headers in responses
+#
+# 7. All endpoints that require authentication will return 401 if token is missing/invalid
+#
+# 8. Admin-only endpoints will return 403 if user doesn't have Admin role
+#
+###############################################
