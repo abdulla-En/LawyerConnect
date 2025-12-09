@@ -4,6 +4,7 @@ using LawyerConnect.Middlewares;
 using LawyerConnect.Repositories;
 using LawyerConnect.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -55,6 +56,41 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// Ensure database is created and migrations are applied
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<LawyerConnectDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    
+    try
+    {
+        // Extract database name from connection string and create it if it doesn't exist
+        var builder2 = new SqlConnectionStringBuilder(connectionString);
+        var databaseName = builder2.InitialCatalog;
+        builder2.InitialCatalog = "master"; // Connect to master to create database
+        
+        using (var masterConnection = new SqlConnection(builder2.ConnectionString))
+        {
+            masterConnection.Open();
+            var createDbCommand = new SqlCommand(
+                $@"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '{databaseName}') 
+                   CREATE DATABASE [{databaseName}]", masterConnection);
+            createDbCommand.ExecuteNonQuery();
+            logger.LogInformation($"Database '{databaseName}' ensured to exist.");
+        }
+        
+        // Now migrate the database
+        dbContext.Database.Migrate();
+        logger.LogInformation("Database migrated successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while creating/migrating the database. Please ensure SQL Server is running and accessible.");
+        throw; // Re-throw to prevent app from starting with invalid database state
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

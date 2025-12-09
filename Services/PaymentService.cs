@@ -19,6 +19,16 @@ namespace LawyerConnect.Services
 
         public async Task<PaymentSessionResponseDto> CreateSessionAsync(PaymentDto dto)
         {
+            // Check if a payment session already exists for this booking
+            var existingSession = await _paymentSessionRepository.GetByBookingIdAsync(dto.BookingId);
+            
+            if (existingSession != null)
+            {
+                // Return the existing session instead of creating a duplicate
+                return existingSession.ToPaymentSessionResponseDto();
+            }
+            
+            // No existing session, create a new one
             var session = dto.ToPaymentSession();
             await _paymentSessionRepository.AddAsync(session);
             return session.ToPaymentSessionResponseDto();
