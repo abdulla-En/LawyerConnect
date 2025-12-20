@@ -31,7 +31,15 @@ namespace LawyerConnect.Services
 
             var lawyer = dto.ToLawyer(userId);
             await _lawyerRepository.AddAsync(lawyer);
-            return lawyer.ToLawyerResponseDto();
+            
+            // Reload the lawyer with the User relationship to ensure FullName and Email are populated
+            var createdLawyer = await _lawyerRepository.GetByIdAsync(lawyer.Id);
+            if (createdLawyer == null)
+            {
+                throw new Exception("Failed to retrieve the created lawyer profile");
+            }
+            
+            return createdLawyer.ToLawyerResponseDto();
         }
 
         public async Task<LawyerResponseDto?> GetByIdAsync(int id)

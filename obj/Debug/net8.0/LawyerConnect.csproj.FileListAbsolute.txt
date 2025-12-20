@@ -137,3 +137,5 @@ C:\Users\Acer\OneDrive\Desktop\Grad_Proj\estasheer\LawyerConnect\obj\Debug\net8.
 C:\Users\Acer\OneDrive\Desktop\Grad_Proj\estasheer\LawyerConnect\obj\Debug\net8.0\LawyerConnect.genruntimeconfig.cache
 C:\Users\Acer\OneDrive\Desktop\Grad_Proj\estasheer\LawyerConnect\obj\Debug\net8.0\ref\LawyerConnect.dll
 C:\Users\Acer\OneDrive\Desktop\Grad_Proj\estasheer\LawyerConnect\bin\Debug\net8.0\LawyerConnect.postman_collection.json
+C:\Users\Acer\OneDrive\Desktop\Grad_Proj\estasheer\LawyerConnect\bin\Debug\net8.0\FrontEnd\package.json
+C:\Users\Acer\OneDrive\Desktop\Grad_Proj\estasheer\LawyerConnect\bin\Debug\net8.0\FrontEnd\package-lock.json
