@@ -1,8 +1,3 @@
-/**
- * API Service Layer
- * Handles all backend communication with JWT authentication
- */
-
 import type {
   AuthResponseDto,
   LoginDto,
@@ -11,8 +6,6 @@ import type {
   LawyerResponseDto,
   BookingDto,
   BookingResponseDto,
-  PaymentDto,
-  PaymentSessionResponseDto,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5128/api';
@@ -24,22 +17,16 @@ class ApiService {
     this.baseUrl = baseUrl;
   }
 
-  /**
-   * Get auth token from localStorage
-   */
   private getAuthToken(): string | null {
     return localStorage.getItem('authToken');
   }
 
-  /**
-   * Build request headers with auth token
-   */
-  private getHeaders(contentType: string = 'application/json', overrideToken?: string): HeadersInit {
+  private getHeaders(contentType: string = 'application/json'): HeadersInit {
     const headers: HeadersInit = {
       'Content-Type': contentType,
     };
 
-    const token = overrideToken || this.getAuthToken();
+    const token = this.getAuthToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -47,38 +34,37 @@ class ApiService {
     return headers;
   }
 
-  /**
-   * Generic fetch wrapper with error handling
-   */
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {},
-    overrideToken?: string
+    options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
     try {
-      console.log(`Fetching ${options.method || 'GET'} ${url}`);
-      
       const response = await fetch(url, {
         ...options,
-        headers: this.getHeaders(
-          (options.headers as any)?.['Content-Type'] || 'application/json',
-          overrideToken
-        ),
+        headers: this.getHeaders(),
       });
 
-      console.log(`Response received: ${response.status} ${response.statusText}`);
-
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error(`API Error Response:`, errorData);
-        throw new Error(
-          errorData.message || `API Error: ${response.status} ${response.statusText}`
-        );
+        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.title) {
+            errorMessage = errorData.title;
+          } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          }
+        } catch {
+          // If JSON parsing fails, use the default error message
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      // Handle empty responses (204 No Content)
       if (response.status === 204) {
         return {} as T;
       }
@@ -92,9 +78,6 @@ class ApiService {
 
   // ==================== AUTH ====================
 
-  /**
-   * Register a new user
-   */
   async registerUser(data: UserRegisterDto): Promise<AuthResponseDto> {
     return this.request<AuthResponseDto>('/auth/register', {
       method: 'POST',
@@ -102,9 +85,6 @@ class ApiService {
     });
   }
 
-  /**
-   * Login user
-   */
   async login(data: LoginDto): Promise<AuthResponseDto> {
     return this.request<AuthResponseDto>('/auth/login', {
       method: 'POST',
@@ -112,9 +92,6 @@ class ApiService {
     });
   }
 
-  /**
-   * Get current user profile
-   */
   async getCurrentUser() {
     return this.request('/auth/me', {
       method: 'GET',
@@ -123,30 +100,13 @@ class ApiService {
 
   // ==================== LAWYERS ====================
 
-  /**
-   * Register lawyer profile (must be authenticated)
-   */
-  async registerLawyer(data: LawyerRegisterDto, token?: string) {
-    console.log('API Service: Calling /lawyers/register with data:', data);
-    const effectiveToken = token || this.getAuthToken();
-    console.log('API Service: Current auth token:', effectiveToken?.substring(0, 20) + '...');
-    
-    try {
-      const response = await this.request('/lawyers/register', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }, effectiveToken);
-      console.log('API Service: registerLawyer response:', response);
-      return response;
-    } catch (error) {
-      console.error('API Service: registerLawyer failed:', error);
-      throw error;
-    }
+  async registerLawyer(data: LawyerRegisterDto): Promise<any> {
+    return this.request('/lawyers/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
-  /**
-   * Get paginated list of lawyers
-   */
   async getLawyers(page: number = 1, limit: number = 10): Promise<LawyerResponseDto[]> {
     return this.request<LawyerResponseDto[]>(
       `/lawyers?page=${page}&limit=${limit}`,
@@ -154,18 +114,12 @@ class ApiService {
     );
   }
 
-  /**
-   * Get single lawyer by ID
-   */
   async getLawyer(id: number): Promise<LawyerResponseDto> {
     return this.request<LawyerResponseDto>(`/lawyers/${id}`, {
       method: 'GET',
     });
   }
 
-  /**
-   * Get current user's lawyer profile (if lawyer)
-   */
   async getMyLawyerProfile() {
     return this.request('/lawyers/me', {
       method: 'GET',
@@ -174,9 +128,6 @@ class ApiService {
 
   // ==================== BOOKINGS ====================
 
-  /**
-   * Create a new booking
-   */
   async createBooking(data: BookingDto): Promise<BookingResponseDto> {
     return this.request<BookingResponseDto>('/bookings', {
       method: 'POST',
@@ -184,51 +135,43 @@ class ApiService {
     });
   }
 
-  /**
-   * Get booking by ID
-   */
   async getBooking(id: number): Promise<BookingResponseDto> {
     return this.request<BookingResponseDto>(`/bookings/${id}`, {
       method: 'GET',
     });
   }
 
-  /**
-   * Get all bookings for current user
-   */
   async getUserBookings(): Promise<BookingResponseDto[]> {
     return this.request<BookingResponseDto[]>('/bookings/user', {
       method: 'GET',
     });
   }
 
-  /**
-   * Get all bookings for current user's lawyer profile
-   */
-  async getLawyerBookings(lawyerId?: number) {
-    const url = lawyerId ? `/bookings/lawyer?lawyerId=${lawyerId}` : '/bookings/lawyer';
-    return this.request(url, {
+  async getLawyerBookings(): Promise<BookingResponseDto[]> {
+    return this.request<BookingResponseDto[]>('/bookings/lawyer', {
       method: 'GET',
     });
   }
 
-  // ==================== PAYMENTS ====================
+  async getLawyerAppointments(): Promise<BookingResponseDto[]> {
+    return this.request<BookingResponseDto[]>('/bookings/lawyer', {
+      method: 'GET',
+    });
+  }
 
-  /**
-   * Create payment session (Stripe checkout)
-   */
-  async createPaymentSession(
-    data: PaymentDto
-  ): Promise<PaymentSessionResponseDto> {
-    return this.request<PaymentSessionResponseDto>('/payments/session', {
-      method: 'POST',
-      body: JSON.stringify(data),
+  async getLawyerById(id: number): Promise<LawyerResponseDto> {
+    return this.request<LawyerResponseDto>(`/lawyers/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  async updateBookingStatus(id: number, status: string): Promise<void> {
+    return this.request<void>(`/bookings/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
     });
   }
 }
 
-// Export singleton instance
 export const apiService = new ApiService();
-
-// Export class for testing/custom instances
 export default ApiService;

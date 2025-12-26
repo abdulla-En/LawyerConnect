@@ -1,300 +1,335 @@
-import { useState, useEffect } from 'react';
-import { Scale, MessageSquare, User, Menu, X, Calendar, LogOut } from 'lucide-react';
-import type { Page } from '../App';
-import { ThemeToggle } from './ThemeToggle';
-import { useAuth } from '../contexts/AuthContext';
-import logo from 'figma:asset/abdcc5fdd23bbd6fd9ff5c18e66196cd93db9a23.png';
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Moon, Sun, Menu, X, Scale, Bot, LogOut, Home, Users, Calendar, Settings, Languages } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface NavbarProps {
-  currentPage: Page;
-  onNavigate: (page: Page) => void;
-  onToggleChatbot: () => void;
-  isDarkTheme: boolean;
-  onToggleTheme: () => void;
+  isDark: boolean
+  toggleTheme: () => void
+  onLoginClick: () => void
+  onSignupClick: () => void
+  onAIChatClick: () => void
 }
 
-export function Navbar({ currentPage, onNavigate, onToggleChatbot, isDarkTheme, onToggleTheme }: NavbarProps) {
-  const { user, isLoggedIn, logout } = useAuth();
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+export default function Navbar({ isDark, toggleTheme, onLoginClick, onSignupClick, onAIChatClick }: NavbarProps) {
+  const { user, isLoggedIn, logout } = useAuth()
+  const { language, setLanguage, t } = useLanguage()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
-  const userType = user ? (user.role === 'Lawyer' ? 'lawyer' : 'user') : null;
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'ar' : 'en')
+  }
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY > 100) {
-        setIsScrolled(true);
-        if (currentScrollY > lastScrollY) {
-          setIsHidden(true);
-        } else {
-          setIsHidden(false);
-        }
-      } else {
-        setIsScrolled(false);
-        setIsHidden(false);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  const handleLogout = () => {
+    logout()
+    setShowUserMenu(false)
+    navigate('/')
+  }
 
   return (
-    <nav 
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isHidden ? '-translate-y-full' : 'translate-y-0'
+        isScrolled 
+          ? 'bg-white/80 dark:bg-dark-900/80 backdrop-blur-xl shadow-lg' 
+          : 'bg-transparent'
       }`}
     >
-      <div className={`max-w-6xl mx-auto px-4 transition-all duration-300 ${
-        isScrolled ? 'mt-4' : 'mt-6'
-      }`}>
-        <div className={`bg-white/80 backdrop-blur-lg rounded-full shadow-lg border border-gray-200/50 px-6 py-3 transition-all duration-300 dark:bg-gray-800/80 dark:border-gray-700/50 ${
-          isScrolled ? 'shadow-xl' : 'shadow-md'
-        }`}>
-          <div className="flex items-center justify-between">
-            <button 
-              onClick={() => onNavigate('home')}
-              className="flex items-center gap-2"
-            >
-              <div className="text-xl font-bold" style={{
-                background: isDarkTheme 
-                  ? 'linear-gradient(135deg, #64B5F6 0%, #42A5F5 100%)'
-                  : 'linear-gradient(135deg, #1A2A6C 0%, #2B3E8C 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>
-                🔨 Estasheer
-              </div>
-            </button>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-6">
-              {userType === 'lawyer' ? (
-                <>
-                  <button 
-                    onClick={() => onNavigate('lawyer-appointments')}
-                    className={`text-sm transition-colors flex items-center gap-2 ${
-                      currentPage === 'lawyer-appointments' ? 'text-[#1A2A6C] dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Calendar className="w-4 h-4" />
-                    My Appointments
-                  </button>
-                  <button 
-                    onClick={() => onNavigate('browse')}
-                    className={`text-sm transition-colors ${
-                      currentPage === 'browse' ? 'text-[#1A2A6C] dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Browse Lawyers
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button 
-                    onClick={() => onNavigate('home')}
-                    className={`text-sm transition-colors ${
-                      currentPage === 'home' ? 'text-[#1A2A6C] dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Home
-                  </button>
-                  <button 
-                    onClick={() => onNavigate('browse')}
-                    className={`text-sm transition-colors ${
-                      currentPage === 'browse' ? 'text-[#1A2A6C] dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    Browse Lawyers
-                  </button>
-                </>
-              )}
-              {isLoggedIn && (
-                <button 
-                  onClick={() => onNavigate('account')}
-                  className={`text-sm transition-colors ${
-                    currentPage === 'account' ? 'text-[#1A2A6C] dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  My Account
-                </button>
-              )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <motion.button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-3"
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center shadow-lg">
+              <Scale className="w-7 h-7 text-white" />
             </div>
+            <span className="text-2xl font-display font-bold bg-gradient-to-r from-primary-600 to-primary-800 dark:from-primary-400 dark:to-primary-600 bg-clip-text text-transparent">
+              Estasheer
+            </span>
+          </motion.button>
 
-            {/* Desktop Actions */}
-            <div className="hidden md:flex items-center gap-3">
-              <ThemeToggle isDark={isDarkTheme} onToggle={onToggleTheme} />
-              <button 
-                onClick={onToggleChatbot}
-                className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                aria-label="Open chatbot"
-              >
-                <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              </button>
-              
-              {isLoggedIn ? (
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col items-end text-right">
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{user?.fullName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role}</p>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      logout();
-                      onNavigate('home');
-                    }}
-                    className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Logout"
-                  >
-                    <LogOut className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button 
-                    onClick={() => onNavigate('login')}
-                    className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    Log In
-                  </button>
-                  <button 
-                    onClick={() => onNavigate('signup')}
-                    className="px-5 py-2 bg-gradient-to-r from-[#1A2A6C] to-[#2B3E8C] dark:from-blue-600 dark:to-purple-600 text-white rounded-full hover:shadow-lg transition-all"
-                  >
-                    Sign Up
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Mobile Menu Button */}
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-8">
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => navigate('/')}
+              className={`flex items-center gap-2 transition-colors font-medium ${
+                location.pathname === '/'
+                  ? 'text-primary-600 dark:text-primary-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
+              }`}
             >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-              ) : (
-                <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-              )}
+              <Home className="w-4 h-4" />
+              {t.nav.home}
             </button>
+            <button
+              onClick={() => navigate('/lawyers')}
+              className={`flex items-center gap-2 transition-colors font-medium ${
+                location.pathname === '/lawyers'
+                  ? 'text-primary-600 dark:text-primary-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              {t.nav.browseLawyers}
+            </button>
+            {isLoggedIn && (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className={`flex items-center gap-2 transition-colors font-medium ${
+                  location.pathname === '/dashboard'
+                    ? 'text-primary-600 dark:text-primary-400'
+                    : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                {t.nav.myAppointments}
+              </button>
+            )}
           </div>
 
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden mt-3 bg-white/90 backdrop-blur-lg rounded-3xl shadow-lg border border-gray-200/50 dark:bg-gray-800/90 dark:border-gray-700/50 p-4">
-              <div className="flex flex-col gap-2">
-                {userType === 'lawyer' ? (
-                  <>
-                    <button 
+          {/* Actions */}
+          <div className="hidden md:flex items-center gap-4">
+            {/* AI Chat Button */}
+            <motion.button
+              onClick={onAIChatClick}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-700 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all"
+            >
+              <Bot className="w-5 h-5" />
+              <span>{t.nav.aiAssistant}</span>
+            </motion.button>
+
+            {/* Language Toggle */}
+            <motion.button
+              onClick={toggleLanguage}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-3 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium shadow-md hover:shadow-lg transition-all"
+              title={language === 'en' ? 'Switch to Arabic' : 'التبديل إلى الإنجليزية'}
+            >
+              <Languages className="w-4 h-4" />
+              <span className="text-sm font-semibold">{language === 'en' ? 'AR' : 'EN'}</span>
+            </motion.button>
+
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-800 transition-colors"
+            >
+              {isDark ? (
+                <Sun className="w-5 h-5 text-primary-500" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-700" />
+              )}
+            </button>
+            
+            {isLoggedIn ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-dark-800 rounded-xl hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-semibold text-sm">
+                      {user?.fullName?.[0] || 'U'}
+                    </span>
+                  </div>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {user?.fullName?.split(' ')[0] || 'User'}
+                  </span>
+                </button>
+
+                {showUserMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-xl shadow-xl border border-gray-200 dark:border-dark-700 py-2"
+                  >
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-dark-700">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {user?.fullName}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                      <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">
+                        {user?.role}
+                      </p>
+                    </div>
+                    <button
                       onClick={() => {
-                        onNavigate('lawyer-appointments');
-                        setIsMobileMenuOpen(false);
+                        navigate('/dashboard')
+                        setShowUserMenu(false)
                       }}
-                      className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg flex items-center gap-2"
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center gap-2"
                     >
                       <Calendar className="w-4 h-4" />
-                      My Appointments
+                      {t.nav.myAppointments}
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
-                        onNavigate('browse');
-                        setIsMobileMenuOpen(false);
+                        navigate('/account')
+                        setShowUserMenu(false)
                       }}
-                      className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center gap-2"
                     >
-                      Browse Lawyers
+                      <Settings className="w-4 h-4" />
+                      {t.nav.accountSettings}
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <button 
-                      onClick={() => {
-                        onNavigate('home');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
-                    >
-                      Home
-                    </button>
-                    <button 
-                      onClick={() => {
-                        onNavigate('browse');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
-                    >
-                      Browse Lawyers
-                    </button>
-                  </>
-                )}
-                {isLoggedIn && (
-                  <>
-                    <button 
-                      onClick={() => {
-                        onNavigate('account');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
-                    >
-                      My Account
-                    </button>
-                    <button 
-                      onClick={() => {
-                        logout();
-                        onNavigate('home');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="text-left px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-2"
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4" />
-                      Logout
+                      {t.nav.logout}
                     </button>
-                  </>
-                )}
-                <button 
-                  onClick={() => {
-                    onToggleChatbot();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
-                >
-                  AI Assistant
-                </button>
-                {!isLoggedIn && (
-                  <>
-                    <button 
-                      onClick={() => {
-                        onNavigate('login');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="text-left px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
-                    >
-                      Log In
-                    </button>
-                    <button 
-                      onClick={() => {
-                        onNavigate('signup');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="px-4 py-2 bg-gradient-to-r from-[#1A2A6C] to-[#2B3E8C] dark:from-blue-600 dark:to-purple-600 text-white rounded-lg"
-                    >
-                      Sign Up
-                    </button>
-                  </>
+                  </motion.div>
                 )}
               </div>
-            </div>
-          )}
+            ) : (
+              <>
+                <button
+                  onClick={onLoginClick}
+                  className="px-6 py-2.5 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                >
+                  {t.nav.login}
+                </button>
+                
+                <motion.button
+                  onClick={onSignupClick}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-2.5 bg-gradient-to-r from-primary-500 to-primary-700 text-white rounded-xl font-medium shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all"
+                >
+                  {t.nav.getStarted}
+                </motion.button>
+              </>
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-800 transition-colors"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            ) : (
+              <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            )}
+          </button>
         </div>
       </div>
-    </nav>
-  );
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="md:hidden bg-white dark:bg-dark-900 border-t border-gray-200 dark:border-dark-800"
+        >
+          <div className="px-4 py-6 space-y-4">
+            <button
+              onClick={onAIChatClick}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-700 text-white rounded-xl font-medium"
+            >
+              <Bot className="w-5 h-5" />
+              {t.nav.aiAssistant}
+            </button>
+
+            {/* Language Toggle Mobile */}
+            <button
+              onClick={toggleLanguage}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium"
+            >
+              <Languages className="w-5 h-5" />
+              <span>{language === 'en' ? 'العربية' : 'English'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                navigate('/')
+                setIsMobileMenuOpen(false)
+              }}
+              className="w-full text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+            >
+              <Home className="w-4 h-4" />
+              {t.nav.home}
+            </button>
+            <button
+              onClick={() => {
+                navigate('/lawyers')
+                setIsMobileMenuOpen(false)
+              }}
+              className="w-full text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+            >
+              <Users className="w-4 h-4" />
+              {t.nav.browseLawyers}
+            </button>
+            {isLoggedIn && (
+              <button
+                onClick={() => {
+                  navigate('/dashboard')
+                  setIsMobileMenuOpen(false)
+                }}
+                className="w-full text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+              >
+                <Calendar className="w-4 h-4" />
+                {t.nav.myAppointments}
+              </button>
+            )}
+            
+            {isLoggedIn ? (
+              <div className="pt-4 space-y-3 border-t border-gray-200 dark:border-dark-700">
+                <div className="px-4 py-2 bg-gray-50 dark:bg-dark-800 rounded-xl">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user?.fullName}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-6 py-3 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-xl font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  {t.nav.logout}
+                </button>
+              </div>
+            ) : (
+              <div className="pt-4 space-y-3">
+                <button
+                  onClick={onLoginClick}
+                  className="w-full px-6 py-3 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-dark-700 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors"
+                >
+                  {t.nav.login}
+                </button>
+                <button
+                  onClick={onSignupClick}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-700 text-white rounded-xl font-medium shadow-lg"
+                >
+                  {t.nav.getStarted}
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </motion.nav>
+  )
 }

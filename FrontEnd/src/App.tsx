@@ -1,118 +1,121 @@
-import { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
-import { HomePage } from './components/pages/HomePage';
-import { BrowseLawyersPage } from './components/pages/BrowseLawyersPage';
-import { LawyerProfilePage } from './components/pages/LawyerProfilePage';
-import { AccountPage } from './components/pages/AccountPage';
-import { LoginPage } from './components/pages/LoginPage';
-import { SignupPage } from './components/pages/SignupPage';
-import { LawyerAppointmentsPage } from './components/pages/LawyerAppointmentsPage';
-import { ChatbotWidget } from './components/ChatbotWidget';
-import { Footer } from './components/Footer';
-import { AnimatedBackground } from './components/AnimatedBackground';
-import { useAuth } from './contexts/AuthContext';
+import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import { useAuth } from './contexts/AuthContext'
+import Navbar from './components/Navbar'
+import Footer from './components/Footer'
+import LoginModal from './components/LoginModal'
+import SignupModal from './components/SignupModal'
+import AIChatModal from './components/AIChatModal'
+import AnimatedBackground from './components/AnimatedBackground'
+import LandingPage from './pages/LandingPage'
+import BrowseLawyers from './pages/BrowseLawyers'
+import LawyerProfile from './pages/LawyerProfile'
+import UserDashboard from './pages/UserDashboard'
+import LawyerDashboard from './pages/LawyerDashboard'
+import AccountPage from './pages/AccountPage'
 
-export type Page = 'home' | 'browse' | 'profile' | 'account' | 'login' | 'signup' | 'lawyer-appointments';
-export type UserType = 'user' | 'lawyer' | null;
+function App() {
+  const { isLoggedIn, user } = useAuth()
+  const [isDark, setIsDark] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
+  const [showSignup, setShowSignup] = useState(false)
+  const [showAIChat, setShowAIChat] = useState(false)
 
-function AppContent() {
-  const { user, isLoggedIn } = useAuth();
-  const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [selectedLawyer, setSelectedLawyer] = useState<any>(null);
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
-  const [isDarkTheme, setIsDarkTheme] = useState(() => {
-    // Initialize from localStorage
-    const saved = localStorage.getItem('isDarkTheme');
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  // Save dark theme preference to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('isDarkTheme', JSON.stringify(isDarkTheme));
-  }, [isDarkTheme]);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoggedIn && (currentPage === 'account' || currentPage === 'lawyer-appointments')) {
-      setCurrentPage('login');
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme')
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+      setIsDark(true)
+      document.documentElement.classList.add('dark')
     }
-  }, [isLoggedIn, currentPage]);
-
-  const handleNavigate = (page: Page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleViewLawyer = (lawyer: any) => {
-    setSelectedLawyer(lawyer);
-    setCurrentPage('profile');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [])
 
   const toggleTheme = () => {
-    setIsDarkTheme(!isDarkTheme);
-  };
-
-  // Determine user type from role
-  const userType: UserType = user
-    ? user.role === 'Lawyer'
-      ? 'lawyer'
-      : 'user'
-    : null;
-
-  return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkTheme ? 'dark bg-gray-950 text-white' : 'bg-white text-gray-900'}`}>
-      <AnimatedBackground />
-      <Navbar 
-        currentPage={currentPage} 
-        onNavigate={handleNavigate}
-        onToggleChatbot={() => setIsChatbotOpen(!isChatbotOpen)}
-        isLoggedIn={isLoggedIn}
-        userType={userType}
-        isDarkTheme={isDarkTheme}
-        onToggleTheme={toggleTheme}
-      />
-      
-      <main>
-        {currentPage === 'home' && (
-          <HomePage onNavigate={handleNavigate} isDarkTheme={isDarkTheme} />
-        )}
-        {currentPage === 'browse' && (
-          <BrowseLawyersPage onViewLawyer={handleViewLawyer} isDarkTheme={isDarkTheme} />
-        )}
-        {currentPage === 'profile' && (
-          <LawyerProfilePage lawyer={selectedLawyer} onNavigate={handleNavigate} isDarkTheme={isDarkTheme} />
-        )}
-        {currentPage === 'account' && (
-          <AccountPage onNavigate={handleNavigate} isDarkTheme={isDarkTheme} />
-        )}
-        {currentPage === 'login' && (
-          <LoginPage onNavigate={handleNavigate} isDarkTheme={isDarkTheme} />
-        )}
-        {currentPage === 'signup' && (
-          <SignupPage onNavigate={handleNavigate} isDarkTheme={isDarkTheme} />
-        )}
-        {currentPage === 'lawyer-appointments' && (
-          <LawyerAppointmentsPage isDarkTheme={isDarkTheme} />
-        )}
-      </main>
-      
-      <ChatbotWidget isOpen={isChatbotOpen} onClose={() => setIsChatbotOpen(false)} />
-      <Footer onNavigate={handleNavigate} isDarkTheme={isDarkTheme} />
-    </div>
-  );
-}
-
-export default function App() {
-  const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1A2A6C] via-[#2B3E8C] to-[#1A2A6C]">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    );
+    setIsDark(!isDark)
+    if (!isDark) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
   }
 
-  return <AppContent />;
+  return (
+    <Router>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-dark-950 dark:via-dark-900 dark:to-dark-950 relative">
+        <AnimatedBackground />
+        
+        <Navbar 
+          isDark={isDark} 
+          toggleTheme={toggleTheme}
+          onLoginClick={() => setShowLogin(true)}
+          onSignupClick={() => setShowSignup(true)}
+          onAIChatClick={() => setShowAIChat(true)}
+        />
+        
+        <main>
+          <Routes>
+            <Route path="/" element={<LandingPage onGetStarted={() => setShowSignup(true)} />} />
+            <Route path="/lawyers" element={<BrowseLawyers />} />
+            <Route path="/lawyer/:id" element={<LawyerProfile />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                isLoggedIn ? (
+                  user?.role === 'Lawyer' ? <LawyerDashboard /> : <UserDashboard />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+            <Route 
+              path="/account" 
+              element={
+                isLoggedIn ? <AccountPage /> : <Navigate to="/" replace />
+              } 
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+
+        <Footer />
+
+        <AnimatePresence>
+          {showLogin && (
+            <LoginModal 
+              onClose={() => setShowLogin(false)}
+              onSwitchToSignup={() => {
+                setShowLogin(false)
+                setShowSignup(true)
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showSignup && (
+            <SignupModal 
+              onClose={() => setShowSignup(false)}
+              onSwitchToLogin={() => {
+                setShowSignup(false)
+                setShowLogin(true)
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showAIChat && (
+            <AIChatModal onClose={() => setShowAIChat(false)} />
+          )}
+        </AnimatePresence>
+      </div>
+    </Router>
+  )
 }
+
+export default App
