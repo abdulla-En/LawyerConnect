@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Star, Briefcase, DollarSign, ChevronRight } from 'lucide-react'
+import { Search, Briefcase, DollarSign, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api'
 import type { LawyerResponseDto } from '../types'

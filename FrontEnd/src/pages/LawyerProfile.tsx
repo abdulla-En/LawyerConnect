@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Star, Briefcase, DollarSign, Calendar, ArrowLeft, CheckCircle } from 'lucide-react'
+import { Briefcase, DollarSign, Calendar, ArrowLeft, CheckCircle } from 'lucide-react'
 import { apiService } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import type { LawyerResponseDto } from '../types'
