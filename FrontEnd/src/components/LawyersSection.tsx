@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Star, MapPin, Briefcase } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const lawyers = [
   {
@@ -32,6 +33,8 @@ const lawyers = [
 ]
 
 export default function LawyersSection() {
+  const navigate = useNavigate()
+  
   return (
     <section id="lawyers" className="py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -108,7 +111,10 @@ export default function LawyersSection() {
         </div>
 
         <div className="text-center mt-12">
-          <button className="px-8 py-4 bg-white dark:bg-dark-800 text-gray-900 dark:text-white rounded-2xl font-semibold border-2 border-gray-200 dark:border-dark-700 hover:border-primary-500 dark:hover:border-primary-500 transition-all">
+          <button 
+            onClick={() => navigate('/lawyers')}
+            className="px-8 py-4 bg-white dark:bg-dark-800 text-gray-900 dark:text-white rounded-2xl font-semibold border-2 border-gray-200 dark:border-dark-700 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
+          >
             View All Lawyers
           </button>
         </div>

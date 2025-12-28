@@ -171,6 +171,21 @@ class ApiService {
       body: JSON.stringify({ status }),
     });
   }
+
+  // ==================== USER PROFILE ====================
+
+  async uploadProfilePhoto(photoBase64: string): Promise<{ profilePhoto: string }> {
+    return this.request<{ profilePhoto: string }>('/users/upload-photo', {
+      method: 'PUT',
+      body: JSON.stringify({ photoBase64 }),
+    });
+  }
+
+  async removeProfilePhoto(): Promise<void> {
+    return this.request<void>('/users/remove-photo', {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const apiService = new ApiService();

@@ -120,6 +120,61 @@ namespace LawyerConnect.Controllers
             var hash = sha.ComputeHash(bytes);
             return Convert.ToHexString(hash);
         }
+
+        public class UploadPhotoDto
+        {
+            public string PhotoBase64 { get; set; } = string.Empty;
+        }
+
+        [HttpPut("upload-photo")]
+        [Authorize]
+        public async Task<IActionResult> UploadProfilePhoto([FromBody] UploadPhotoDto dto)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) return NotFound();
+
+            // Validate base64 image (basic validation)
+            if (string.IsNullOrWhiteSpace(dto.PhotoBase64))
+            {
+                return BadRequest("Photo data is required.");
+            }
+
+            // Check if it's a valid base64 data URL
+            if (!dto.PhotoBase64.StartsWith("data:image/"))
+            {
+                return BadRequest("Invalid image format. Please provide a base64 encoded image.");
+            }
+
+            user.ProfilePhoto = dto.PhotoBase64;
+            await _userRepository.UpdateAsync(user);
+
+            return Ok(new { profilePhoto = user.ProfilePhoto });
+        }
+
+        [HttpDelete("remove-photo")]
+        [Authorize]
+        public async Task<IActionResult> RemoveProfilePhoto()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) return NotFound();
+
+            user.ProfilePhoto = null;
+            await _userRepository.UpdateAsync(user);
+
+            return NoContent();
+        }
     }
 }
 

@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { User, Mail, Phone, Award, Save } from 'lucide-react'
+import { User, Mail, Phone, Award, Save, Pencil } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { apiService } from '../services/api'
 
 export default function AccountPage() {
   const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(user?.profilePhoto || null)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
@@ -17,6 +21,61 @@ export default function AccountPage() {
     // TODO: Implement update user profile API call
     setIsEditing(false)
     alert('Profile updated successfully!')
+  }
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file')
+      return
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image size should be less than 2MB')
+      return
+    }
+
+    setIsUploadingPhoto(true)
+
+    try {
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string
+        
+        try {
+          await apiService.uploadProfilePhoto(base64)
+          setProfilePhoto(base64)
+          
+          // Update localStorage user data
+          const savedUser = localStorage.getItem('user')
+          if (savedUser) {
+            const userData = JSON.parse(savedUser)
+            userData.profilePhoto = base64
+            localStorage.setItem('user', JSON.stringify(userData))
+          }
+          
+          alert('Profile photo updated successfully!')
+        } catch (err) {
+          console.error('Failed to upload photo:', err)
+          alert('Failed to upload photo. Please try again.')
+        } finally {
+          setIsUploadingPhoto(false)
+        }
+      }
+      reader.readAsDataURL(file)
+    } catch (err) {
+      console.error('Error reading file:', err)
+      setIsUploadingPhoto(false)
+    }
   }
 
   return (
@@ -45,8 +104,37 @@ export default function AccountPage() {
         >
           {/* Avatar and Role */}
           <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200 dark:border-dark-700">
-            <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center text-white text-3xl font-bold">
-              {user?.fullName?.[0] || 'U'}
+            <div className="relative">
+              {profilePhoto ? (
+                <img 
+                  src={profilePhoto} 
+                  alt={user?.fullName || 'Profile'} 
+                  className="w-24 h-24 rounded-2xl object-cover"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center text-white text-3xl font-bold">
+                  {user?.fullName?.[0] || 'U'}
+                </div>
+              )}
+              <button
+                onClick={handlePhotoClick}
+                disabled={isUploadingPhoto}
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary-500 hover:bg-primary-600 text-white rounded-lg flex items-center justify-center shadow-lg transition-colors disabled:opacity-50"
+                title="Edit profile photo"
+              >
+                {isUploadingPhoto ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Pencil className="w-4 h-4" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">

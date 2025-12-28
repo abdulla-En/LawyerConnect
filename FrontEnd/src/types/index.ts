@@ -12,6 +12,7 @@ export interface UserResponseDto {
   phone: string;
   city: string;
   role: string;
+  profilePhoto?: string;
   createdAt: string;
 }
 
