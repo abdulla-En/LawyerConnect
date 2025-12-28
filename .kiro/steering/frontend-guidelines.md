@@ -14,6 +14,12 @@ When working with files in `FrontEnd/src/`:
    - React Router navigation
 4. **Use git restore if needed** - If changes break functionality, restore from git: `git checkout HEAD -- <file>`
 
+## After Restoring or Fixing Files
+
+1. **Always run `npm run build`** in FrontEnd folder to verify the fix works
+2. **Commit restored files immediately** - After using `git checkout HEAD --` to restore files, stage and commit them right away so they don't get lost
+3. **Check git status after commits** - Verify no important files are left uncommitted with `git status`
+
 ## Key Frontend Structure
 
 - Pages are in `FrontEnd/src/pages/` (not `FrontEnd/src/components/pages/`)
