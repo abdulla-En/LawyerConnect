@@ -11,6 +11,7 @@ interface AuthContextType {
   register: (data: UserRegisterDto) => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  updateUser: (updates: Partial<UserResponseDto>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -91,6 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   };
 
+  const updateUser = (updates: Partial<UserResponseDto>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -102,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         clearError,
+        updateUser,
       }}
     >
       {children}

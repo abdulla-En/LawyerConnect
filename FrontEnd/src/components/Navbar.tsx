@@ -147,11 +147,19 @@ export default function Navbar({ isDark, toggleTheme, onLoginClick, onSignupClic
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-dark-800 rounded-xl hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">
-                      {user?.fullName?.[0] || 'U'}
-                    </span>
-                  </div>
+                  {user?.profilePhoto ? (
+                    <img 
+                      src={user.profilePhoto} 
+                      alt={user.fullName || 'Profile'} 
+                      className="w-8 h-8 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-semibold text-sm">
+                        {user?.fullName?.[0] || 'U'}
+                      </span>
+                    </div>
+                  )}
                   <span className="font-medium text-gray-900 dark:text-white">
                     {user?.fullName?.split(' ')[0] || 'User'}
                   </span>

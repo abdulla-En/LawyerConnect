@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api'
 
 export default function AccountPage() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [profilePhoto, setProfilePhoto] = useState<string | null>(user?.profilePhoto || null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
@@ -55,13 +55,8 @@ export default function AccountPage() {
           await apiService.uploadProfilePhoto(base64)
           setProfilePhoto(base64)
           
-          // Update localStorage user data
-          const savedUser = localStorage.getItem('user')
-          if (savedUser) {
-            const userData = JSON.parse(savedUser)
-            userData.profilePhoto = base64
-            localStorage.setItem('user', JSON.stringify(userData))
-          }
+          // Update user in context (this also updates localStorage)
+          updateUser({ profilePhoto: base64 })
           
           alert('Profile photo updated successfully!')
         } catch (err) {
