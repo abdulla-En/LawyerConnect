@@ -4,6 +4,7 @@ using System.Text;
 using LawyerConnect.DTOs;
 using LawyerConnect.Repositories;
 using LawyerConnect.Services;
+using LawyerConnect.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,11 +16,16 @@ namespace LawyerConnect.Controllers
     {
         private readonly IUserService _userService;
         private readonly IUserRepository _userRepository;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
+        private readonly ILogger<UsersController> _logger;
 
-        public UsersController(IUserService userService, IUserRepository userRepository)
+
+        public UsersController(IUserService userService, IUserRepository userRepository , IRefreshTokenRepository  refreshTokenRepository, ILogger<UsersController> logger)
         {
             _userService = userService;
             _userRepository = userRepository;
+            _refreshTokenRepository = refreshTokenRepository;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -58,6 +64,33 @@ namespace LawyerConnect.Controllers
             return NoContent();
         }
 
+
+        [HttpDelete("delete-account")]
+        [Authorize]
+        public async Task<IActionResult> DeleteMyAccount()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) return NotFound();
+
+            //Revoke ALL refresh tokens before deletion with reason
+            await _refreshTokenRepository.RevokeAllAsync(userId, RefreshTokenRevokeReason.AccountDeleted);
+
+            // Delete user (cascade delete will handle related data)
+            await _userRepository.DeleteAsync(user);
+
+            // Clear refresh token cookie
+            Response.Cookies.Delete("refreshToken");
+
+            return Ok(new { message = "Account deleted successfully." });
+        }
+
+
         public class ChangePasswordDto
         {
             public string CurrentPassword { get; set; } = string.Empty;
@@ -85,7 +118,12 @@ namespace LawyerConnect.Controllers
 
             user.PasswordHash = HashPassword(dto.NewPassword);
             await _userRepository.UpdateAsync(user);
-            return NoContent();
+
+            await _refreshTokenRepository.RevokeAllAsync(userId, RefreshTokenRevokeReason.PasswordChanged);
+
+            _logger.LogInformation($"User {userId} changed password. All sessions revoked.");
+
+            return Ok(new { message = "Password changed successfully. Please login again." });
         }
 
         public class UpdateRoleDto

@@ -145,6 +145,60 @@ namespace LawyerConnect.Migrations
                     b.ToTable("PaymentSessions");
                 });
 
+            modelBuilder.Entity("LawyerConnect.Models.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("RevokeReason")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Revoked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("RevokedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReplacedByTokenId")
+                        .IsUnique()
+                        .HasFilter("[ReplacedByTokenId] IS NOT NULL");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
+                });
+
             modelBuilder.Entity("LawyerConnect.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -232,6 +286,24 @@ namespace LawyerConnect.Migrations
                     b.Navigation("Booking");
                 });
 
+            modelBuilder.Entity("LawyerConnect.Models.RefreshToken", b =>
+                {
+                    b.HasOne("LawyerConnect.Models.RefreshToken", "Refreshtoken")
+                        .WithOne()
+                        .HasForeignKey("LawyerConnect.Models.RefreshToken", "ReplacedByTokenId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LawyerConnect.Models.User", "User")
+                        .WithMany("Refreshtokns")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Refreshtoken");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LawyerConnect.Models.Booking", b =>
                 {
                     b.Navigation("PaymentSession");
@@ -247,6 +319,8 @@ namespace LawyerConnect.Migrations
                     b.Navigation("Bookings");
 
                     b.Navigation("LawyerProfile");
+
+                    b.Navigation("Refreshtokns");
                 });
 #pragma warning restore 612, 618
         }

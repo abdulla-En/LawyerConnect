@@ -37,6 +37,12 @@ namespace LawyerConnect.Repositories
             _context.Users.Update(user); // no DB connection just modified the user state in memory NO Async
             await _context.SaveChangesAsync(); // no send updates from memorry to the DB
         }
+
+        public async Task DeleteAsync(User user)
+        {
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+        }
     }
 }
 

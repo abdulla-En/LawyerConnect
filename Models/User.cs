@@ -16,5 +16,6 @@ namespace LawyerConnect.Models
 
         public Lawyer? LawyerProfile { get; set; }   // one to one or zero rls
         public List<Booking>? Bookings { get; set; }  // one to many rls
+        public List<RefreshToken>? Refreshtokns { get; set; }  // one to many rls
     }
 }

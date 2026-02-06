@@ -12,6 +12,7 @@ namespace LawyerConnect.Data
         public DbSet<Lawyer> Lawyers { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<PaymentSession> PaymentSessions { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,6 +68,34 @@ namespace LawyerConnect.Data
                 modelBuilder.Entity<PaymentSession>()
                 .Property(p => p.Amount)
                 .HasColumnType("decimal(18,2)");
+
+                modelBuilder.Entity<RefreshToken>()
+                .HasOne(r => r.User)                
+                .WithMany(u => u.Refreshtokns)     
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade); 
+
+
+                modelBuilder.Entity<RefreshToken>()
+                .HasOne(r => r.Refreshtoken)     
+                .WithOne()                        
+                .HasForeignKey<RefreshToken>(r => r.ReplacedByTokenId)
+                .OnDelete(DeleteBehavior.Restrict); // because protect chain 
+
+                modelBuilder.Entity<RefreshToken>()
+                .HasIndex(r => r.TokenHash)
+                .IsUnique();
+
+
+                modelBuilder.Entity<RefreshToken>()
+                .Property(r => r.TokenHash)
+                .HasMaxLength(512)
+                .IsRequired();
+
+                modelBuilder.Entity<RefreshToken>()
+                .Property(r=>r.Revoked)
+                .HasDefaultValue(false);
+
 
         }
     }
