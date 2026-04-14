@@ -4,7 +4,7 @@
 # Base URL: https://localhost:7000 (adjust port as needed)
 ###############################################################################
 
-@baseUrl = https://localhost:5128
+@baseUrl = http://localhost:5128
 @contentType = application/json
 
 # Variables (will be set from responses)
@@ -28,12 +28,14 @@ POST {{baseUrl}}/api/auth/register
 Content-Type: {{contentType}}
 
 {
-  "fullName": "Ahmed Hassan",
-  "email": "ahmed.hassan@example.com",
-  "password": "SecurePass123!",
-  "phone": "+201234567890",
-  "city": "Cairo",
-  "role": "User"
+  "user": {
+    "fullName": "Ahmed Hassan",
+    "email": "ahmed.hassan@example.com",
+    "password": "SecurePass123!",
+    "phone": "+201234567890",
+    "city": "Cairo",
+    "role": "User"
+  }
 }
 
 ### 1.2 Login User
@@ -71,12 +73,22 @@ POST {{baseUrl}}/api/auth/register
 Content-Type: {{contentType}}
 
 {
-  "fullName": "Dr. Mohamed Ali",
-  "email": "mohamed.ali@lawfirm.com",
-  "password": "LawyerPass123!",
-  "phone": "+201098765432",
-  "city": "Alexandria",
-  "role": "Lawyer"
+  "user": {
+    "fullName": "Dr. Mohamed Ali",
+    "email": "mohamed.ali@lawfirm.com",
+    "password": "LawyerPass123!",
+    "phone": "+201098765432",
+    "city": "Alexandria",
+    "role": "Lawyer"
+  },
+  "lawyer": {
+    "bio": "Experienced corporate lawyer with 10+ years in commercial law",
+    "experienceYears": 10,
+    "licenseNumber": "LAW-2014-12345",
+    "latitude": 31.2001,
+    "longitude": 29.9187,
+    "specializationIds": [1, 2]
+  }
 }
 
 ### 2.2 Login Lawyer
@@ -508,12 +520,14 @@ POST {{baseUrl}}/api/auth/register
 Content-Type: {{contentType}}
 
 {
-  "fullName": "Duplicate User",
-  "email": "ahmed.hassan@example.com",
-  "password": "SecurePass123!",
-  "phone": "+201234567890",
-  "city": "Cairo",
-  "role": "User"
+  "user": {
+    "fullName": "Duplicate User",
+    "email": "ahmed.hassan@example.com",
+    "password": "SecurePass123!",
+    "phone": "+201234567890",
+    "city": "Cairo",
+    "role": "User"
+  }
 }
 
 ### 13.4 Test Invalid Pagination (Page < 1)
@@ -571,12 +585,14 @@ POST {{baseUrl}}/api/auth/register
 Content-Type: {{contentType}}
 
 {
-  "fullName": "Sara Ibrahim",
-  "email": "sara.ibrahim@example.com",
-  "password": "UserPass123!",
-  "phone": "+201555666777",
-  "city": "Giza",
-  "role": "User"
+  "user": {
+    "fullName": "Sara Ibrahim",
+    "email": "sara.ibrahim@example.com",
+    "password": "UserPass123!",
+    "phone": "+201555666777",
+    "city": "Giza",
+    "role": "User"
+  }
 }
 
 ### 14.2 User Logs In
