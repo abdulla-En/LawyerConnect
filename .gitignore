@@ -30,6 +30,11 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# Configuration with sensitive data (uncomment if you add real API keys)
+# appsettings.json
+# appsettings.Development.json
+# appsettings.Production.json
+
 # Database
 *.db
 *.sqlite
