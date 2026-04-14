@@ -26,6 +26,9 @@ namespace LawyerConnect.Repositories
                 .Take(limit) // Fetch @limit Rows Only 
                 .ToListAsync(); // convert the last Linq expr => sql query and retrieve a list<user> which is casting to IEnumerable auto
 
+        public async Task<List<User>> GetAllAsync() =>
+            await _context.Users.ToListAsync();
+
         public async Task AddAsync(User user)
         {
             await _context.Users.AddAsync(user);

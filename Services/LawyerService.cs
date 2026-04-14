@@ -1,10 +1,8 @@
 using LawyerConnect.DTOs;
+using LawyerConnect.Data;
 using LawyerConnect.Mappers;
 using LawyerConnect.Models;
 using LawyerConnect.Repositories;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace LawyerConnect.Services
 {
@@ -12,62 +10,311 @@ namespace LawyerConnect.Services
     {
         private readonly ILawyerRepository _lawyerRepository;
         private readonly IUserRepository _userRepository;
+        private readonly ISpecializationRepository _specializationRepository;
+        private readonly LawyerConnectDbContext _context;
+        private readonly ILogger<LawyerService> _logger;
 
-        public LawyerService(ILawyerRepository lawyerRepository, IUserRepository userRepository)
+        public LawyerService(
+            ILawyerRepository lawyerRepository, 
+            IUserRepository userRepository,
+            ISpecializationRepository specializationRepository,
+            LawyerConnectDbContext context,
+            ILogger<LawyerService> logger)
         {
             _lawyerRepository = lawyerRepository;
             _userRepository = userRepository;
+            _specializationRepository = specializationRepository;
+            _context = context;
+            _logger = logger;
         }
 
         public async Task<LawyerResponseDto> RegisterLawyerAsync(LawyerRegisterDto dto, int userId)
         {
-            // Update user role to "Lawyer" if not already
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user != null && user.Role != "Lawyer" && user.Role != "Admin")
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                user.Role = "Lawyer";
-                await _userRepository.UpdateAsync(user);
-            }
+                _logger.LogInformation($"Registering lawyer profile for user {userId}");
 
-            var lawyer = dto.ToLawyer(userId);
-            await _lawyerRepository.AddAsync(lawyer);
-            
-            // Reload the lawyer with the User relationship to ensure FullName and Email are populated
-            var createdLawyer = await _lawyerRepository.GetByIdAsync(lawyer.Id);
-            if (createdLawyer == null)
-            {
-                throw new Exception("Failed to retrieve the created lawyer profile");
+                // Validate user exists
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogWarning($"User {userId} not found");
+                    throw new ArgumentException("User not found");
+                }
+
+                // Check if lawyer profile already exists
+                var existingLawyer = await _lawyerRepository.GetByUserIdAsync(userId);
+                if (existingLawyer != null)
+                {
+                    _logger.LogWarning($"Lawyer profile already exists for user {userId}");
+                    throw new InvalidOperationException("Lawyer profile already exists for this user");
+                }
+
+                // Validate specializations
+                if (dto.SpecializationIds.Any())
+                {
+                    foreach (var specializationId in dto.SpecializationIds)
+                    {
+                        var specialization = await _specializationRepository.GetByIdAsync(specializationId);
+                        if (specialization == null)
+                        {
+                            _logger.LogWarning($"Specialization {specializationId} not found");
+                            throw new ArgumentException($"Specialization with ID {specializationId} not found");
+                        }
+                    }
+                }
+
+                // Update user role to "Lawyer" if not already
+                if (user.Role != "Lawyer" && user.Role != "Admin")
+                {
+                    user.Role = "Lawyer";
+                    await _userRepository.UpdateAsync(user);
+                    _logger.LogInformation($"Updated user {userId} role to Lawyer");
+                }
+
+                var lawyer = dto.ToLawyer(userId);
+                await _lawyerRepository.AddAsync(lawyer);
+                
+                // Add specializations
+                if (dto.SpecializationIds.Any())
+                {
+                    foreach (var specializationId in dto.SpecializationIds)
+                    {
+                        lawyer.Specializations ??= new List<LawyerSpecialization>();
+                        lawyer.Specializations.Add(new LawyerSpecialization
+                        {
+                            LawyerId = lawyer.Id,
+                            SpecializationId = specializationId
+                        });
+                    }
+                    await _lawyerRepository.UpdateAsync(lawyer);
+                }
+                
+                await transaction.CommitAsync();
+
+                // Reload the lawyer with the User relationship
+                var createdLawyer = await _lawyerRepository.GetByIdAsync(lawyer.Id);
+                if (createdLawyer == null)
+                {
+                    _logger.LogError($"Failed to retrieve created lawyer profile for user {userId}");
+                    throw new InvalidOperationException("Failed to retrieve the created lawyer profile");
+                }
+                
+                _logger.LogInformation($"Lawyer profile {createdLawyer.Id} created successfully for user {userId}");
+
+                return createdLawyer.ToLawyerResponseDto();
             }
-            
-            return createdLawyer.ToLawyerResponseDto();
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Failed to register lawyer profile for user {userId}");
+                throw;
+            }
         }
 
         public async Task<LawyerResponseDto?> GetByIdAsync(int id)
         {
-            var lawyer = await _lawyerRepository.GetByIdAsync(id);
-            return lawyer?.ToLawyerResponseDto();
+            try
+            {
+                _logger.LogInformation($"Retrieving lawyer {id}");
+
+                var lawyer = await _lawyerRepository.GetByIdAsync(id);
+                if (lawyer == null)
+                {
+                    _logger.LogWarning($"Lawyer {id} not found");
+                    return null;
+                }
+
+                return lawyer.ToLawyerResponseDto();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve lawyer {id}");
+                throw;
+            }
         }
 
         public async Task<LawyerResponseDto?> GetByUserIdAsync(int userId)
         {
-            var lawyer = await _lawyerRepository.GetByUserIdAsync(userId);
-            return lawyer?.ToLawyerResponseDto();
+            try
+            {
+                _logger.LogInformation($"Retrieving lawyer profile for user {userId}");
+
+                var lawyer = await _lawyerRepository.GetByUserIdAsync(userId);
+                if (lawyer == null)
+                {
+                    _logger.LogWarning($"Lawyer profile not found for user {userId}");
+                    return null;
+                }
+
+                return lawyer.ToLawyerResponseDto();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve lawyer profile for user {userId}");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<LawyerResponseDto>> GetPagedAsync(int page, int limit)
         {
-            var lawyers = await _lawyerRepository.GetPagedAsync(page, limit);
-            return lawyers.Select(l => l.ToLawyerResponseDto());
+            try
+            {
+                _logger.LogInformation($"Retrieving lawyers page {page}, limit {limit}");
+
+                // Validate pagination
+                if (page < 1)
+                {
+                    _logger.LogWarning($"Invalid page number: {page}");
+                    throw new ArgumentException("Page number must be greater than 0");
+                }
+
+                if (limit < 1 || limit > 100)
+                {
+                    _logger.LogWarning($"Invalid limit: {limit}");
+                    throw new ArgumentException("Limit must be between 1 and 100");
+                }
+
+                var lawyers = await _lawyerRepository.GetPagedAsync(page, limit);
+                var lawyersList = lawyers.ToList();
+                
+                _logger.LogInformation($"Retrieved {lawyersList.Count} lawyers");
+
+                return lawyersList.Select(l => l.ToLawyerResponseDto());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve lawyers");
+                throw;
+            }
+        }
+
+        public async Task<List<LawyerResponseDto>> SearchLawyersAsync(LawyerSearchDto filters)
+        {
+            try
+            {
+                _logger.LogInformation($"Searching lawyers with filters: page {filters.Page}, limit {filters.Limit}");
+
+                // Validate pagination
+                if (filters.Page < 1)
+                {
+                    _logger.LogWarning($"Invalid page number: {filters.Page}");
+                    throw new ArgumentException("Page number must be greater than 0");
+                }
+
+                if (filters.Limit < 1 || filters.Limit > 100)
+                {
+                    _logger.LogWarning($"Invalid limit: {filters.Limit}");
+                    throw new ArgumentException("Limit must be between 1 and 100");
+                }
+
+                var lawyers = await _lawyerRepository.GetPagedAsync(filters.Page, filters.Limit);
+                
+                // Filter by verification status (only verified lawyers)
+                var results = lawyers.Where(l => l.IsVerified).ToList();
+
+                // Filter by specialization
+                if (filters.SpecializationId.HasValue)
+                {
+                    results = results.Where(l => l.Specializations?.Any(s => s.SpecializationId == filters.SpecializationId) ?? false).ToList();
+                    _logger.LogInformation($"Filtered by specialization {filters.SpecializationId}: {results.Count} results");
+                }
+
+                // Filter by location (distance calculation)
+                if (filters.Latitude.HasValue && filters.Longitude.HasValue && filters.RadiusKm.HasValue)
+                {
+                    results = results.Where(l => CalculateDistance(
+                        filters.Latitude.Value, 
+                        filters.Longitude.Value, 
+                        l.Latitude, 
+                        l.Longitude) <= filters.RadiusKm.Value).ToList();
+                    _logger.LogInformation($"Filtered by location (radius {filters.RadiusKm}km): {results.Count} results");
+                }
+
+                // Filter by experience
+                if (filters.MinExperienceYears.HasValue)
+                {
+                    results = results.Where(l => l.ExperienceYears >= filters.MinExperienceYears.Value).ToList();
+                    _logger.LogInformation($"Filtered by experience (min {filters.MinExperienceYears} years): {results.Count} results");
+                }
+
+                // Filter by rating
+                if (filters.MinRating.HasValue)
+                {
+                    results = results.Where(l => 
+                    {
+                        var avgRating = l.Reviews?.Any() == true 
+                            ? (decimal)l.Reviews.Average(r => r.Rating) 
+                            : 0;
+                        return avgRating >= filters.MinRating.Value;
+                    }).ToList();
+                    _logger.LogInformation($"Filtered by rating (min {filters.MinRating}): {results.Count} results");
+                }
+
+                _logger.LogInformation($"Search completed: {results.Count} lawyers found");
+
+                return results.Select(l => l.ToLawyerResponseDto()).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to search lawyers");
+                throw;
+            }
         }
 
         public async Task VerifyLawyerAsync(int id)
         {
-            var lawyer = await _lawyerRepository.GetByIdAsync(id);
-            if (lawyer != null)
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                lawyer.Verified = true;
+                _logger.LogInformation($"Verifying lawyer {id}");
+
+                var lawyer = await _lawyerRepository.GetByIdAsync(id);
+                if (lawyer == null)
+                {
+                    _logger.LogWarning($"Lawyer {id} not found");
+                    throw new ArgumentException($"Lawyer with ID {id} not found");
+                }
+
+                if (lawyer.IsVerified)
+                {
+                    _logger.LogInformation($"Lawyer {id} is already verified");
+                    return;
+                }
+
+                lawyer.IsVerified = true;
                 await _lawyerRepository.UpdateAsync(lawyer);
+
+                await transaction.CommitAsync();
+
+                _logger.LogInformation($"Lawyer {id} verified successfully");
             }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Failed to verify lawyer {id}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Calculate distance between two coordinates using Haversine formula (in kilometers)
+        /// </summary>
+        private decimal CalculateDistance(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
+        {
+            const decimal R = 6371; // Earth's radius in kilometers
+            
+            var dLat = (lat2 - lat1) * (decimal)Math.PI / 180;
+            var dLon = (lon2 - lon1) * (decimal)Math.PI / 180;
+            
+            var a = (decimal)Math.Sin((double)dLat / 2) * (decimal)Math.Sin((double)dLat / 2) +
+                    (decimal)Math.Cos((double)lat1 * Math.PI / 180) * (decimal)Math.Cos((double)lat2 * Math.PI / 180) *
+                    (decimal)Math.Sin((double)dLon / 2) * (decimal)Math.Sin((double)dLon / 2);
+            
+            var c = 2 * (decimal)Math.Atan2(Math.Sqrt((double)a), Math.Sqrt((double)(1 - a)));
+            
+            return R * c;
         }
     }
 }

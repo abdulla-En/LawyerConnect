@@ -11,10 +11,17 @@ namespace LawyerConnect.Controllers
     public class LawyersController : ControllerBase
     {
         private readonly ILawyerService _lawyerService;
+        private readonly IPricingService _pricingService;
+        private readonly ILogger<LawyersController> _logger;
 
-        public LawyersController(ILawyerService lawyerService)
+        public LawyersController(
+            ILawyerService lawyerService,
+            IPricingService pricingService,
+            ILogger<LawyersController> logger)
         {
             _lawyerService = lawyerService;
+            _pricingService = pricingService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -37,6 +44,22 @@ namespace LawyerConnect.Controllers
 
             var lawyer = await _lawyerService.RegisterLawyerAsync(dto, userId);
             return CreatedAtAction(nameof(GetById), new { id = lawyer.Id }, lawyer);
+        }
+
+        [HttpGet("search")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<LawyerResponseDto>>> Search([FromQuery] LawyerSearchDto filters)
+        {
+            try
+            {
+                var results = await _lawyerService.SearchLawyersAsync(filters);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching lawyers");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
         }
 
         [HttpGet]
@@ -77,6 +100,131 @@ namespace LawyerConnect.Controllers
         {
             await _lawyerService.VerifyLawyerAsync(id);
             return NoContent();
+        }
+
+        [HttpPost("{lawyerId}/pricing")]
+        [Authorize(Roles = "Lawyer,Admin")]
+        public async Task<IActionResult> SetPricing(int lawyerId, [FromBody] LawyerPricingDto dto)
+        {
+            try
+            {
+                // Verify the lawyer belongs to the current user (unless admin)
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized();
+                }
+
+                var lawyer = await _lawyerService.GetByIdAsync(lawyerId);
+                if (lawyer == null)
+                    return NotFound(new { message = "Lawyer not found" });
+
+                if (lawyer.UserId != userId && !User.IsInRole("Admin"))
+                    return Forbid();
+
+                await _pricingService.SetPricingAsync(lawyerId, dto);
+                return CreatedAtAction(nameof(GetPricing), new { lawyerId, specializationId = dto.SpecializationId, interactionTypeId = dto.InteractionTypeId }, dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting pricing");
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("{lawyerId}/pricing")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<LawyerPricingDto>>> GetLawyerPricing(int lawyerId)
+        {
+            try
+            {
+                var pricing = await _pricingService.GetLawyerPricingAsync(lawyerId);
+                return Ok(pricing);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving pricing");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpGet("{lawyerId}/pricing/{specializationId}/{interactionTypeId}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<LawyerPricingDto>> GetPricing(int lawyerId, int specializationId, int interactionTypeId)
+        {
+            try
+            {
+                var pricing = await _pricingService.GetPricingAsync(lawyerId, specializationId, interactionTypeId);
+                if (pricing == null)
+                    return NotFound(new { message = "Pricing not found" });
+
+                return Ok(pricing);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving pricing");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpPut("{lawyerId}/pricing")]
+        [Authorize(Roles = "Lawyer,Admin")]
+        public async Task<IActionResult> UpdatePricing(int lawyerId, [FromBody] LawyerPricingDto dto)
+        {
+            try
+            {
+                // Verify the lawyer belongs to the current user (unless admin)
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized();
+                }
+
+                var lawyer = await _lawyerService.GetByIdAsync(lawyerId);
+                if (lawyer == null)
+                    return NotFound(new { message = "Lawyer not found" });
+
+                if (lawyer.UserId != userId && !User.IsInRole("Admin"))
+                    return Forbid();
+
+                await _pricingService.UpdatePricingAsync(lawyerId, dto);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating pricing");
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{lawyerId}/pricing/{specializationId}/{interactionTypeId}")]
+        [Authorize(Roles = "Lawyer,Admin")]
+        public async Task<IActionResult> DeletePricing(int lawyerId, int specializationId, int interactionTypeId)
+        {
+            try
+            {
+                // Verify the lawyer belongs to the current user (unless admin)
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized();
+                }
+
+                var lawyer = await _lawyerService.GetByIdAsync(lawyerId);
+                if (lawyer == null)
+                    return NotFound(new { message = "Lawyer not found" });
+
+                if (lawyer.UserId != userId && !User.IsInRole("Admin"))
+                    return Forbid();
+
+                await _pricingService.DeletePricingAsync(lawyerId, specializationId, interactionTypeId);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting pricing");
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
     }
 }

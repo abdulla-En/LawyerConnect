@@ -1,85 +1,274 @@
-# LawyerConnect Backend
+# LawyerConnect - Legal Consultation Platform
 
-ASP.NET Core 8 Web API for user registration/login, lawyer onboarding, bookings, and payment sessions. Uses SQL Server with Entity Framework Core, JWT authentication/authorization, and a simple in-memory rate limiter.
+A comprehensive legal consultation platform connecting clients with verified lawyers. Built with ASP.NET Core 8, featuring booking management, real-time chat, Stripe payment processing, and review systems.
 
-## Tech stack
-- .NET 8, ASP.NET Core Web API, Swagger
-- Entity Framework Core 8 with SQL Server
-- JWT bearer auth (HMAC SHA256)
-- Role-based access: `User`, `Lawyer`, `Admin`
-- Custom middleware: per-route rate limiting
+## 🎯 Project Status
 
-## Project layout
-- `Program.cs` – DI setup, EF Core, JWT, Swagger, rate limiting middleware.
-- `Data/LawyerConnectDbContext.cs` – DbSets and relationships (unique user email, one-to-one user↔lawyer, bookings with restricted deletes, one-to-one payment session).
-- `Models/` – User, Lawyer, Booking, PaymentSession entities.
-- `DTOs/` + `Mappers/` – Transport objects and mapping helpers.
-- `Repositories/` – Data access abstractions and implementations.
-- `Services/` – Business logic for users, lawyers, bookings, payments.
-- `Controllers/` – HTTP endpoints: auth, users, lawyers, bookings, payments.
-- `Middlewares/RateLimitingMiddleware.cs` – Simple IP+path windowed limiter.
-- `Migrations/` – Initial EF Core migration.
+**✅ BACKEND COMPLETE - READY FOR FRONTEND INTEGRATION**
 
-## Configuration
-Update `appsettings.json` (or environment variables):
+- ✅ 10 Production-ready services
+- ✅ 123 Passing unit tests
+- ✅ Zero build errors
+- ✅ Zero test failures
+- ✅ Stripe payment integration
+- ✅ Real-time chat system
+- ✅ Comprehensive documentation
 
-- `ConnectionStrings:DefaultConnection` – SQL Server connection string.
-- `Jwt:Key` (min 32 chars), `Jwt:Issuer`, `Jwt:Audience`, `Jwt:ExpiresMinutes`.
-- `AdminSecret` – required to self-register as `Admin`.
-- `RateLimiting:Limit`, `RateLimiting:WindowSeconds` – per-IP+path window.
+## 🚀 Quick Start
 
-## Run it locally (step by step)
-1) **Install prerequisites**: .NET 8 SDK, SQL Server instance reachable from the app.  
-2) **Restore packages**: `dotnet restore`.  
-3) **Configure env**: set `ConnectionStrings__DefaultConnection` and JWT/Admin secrets if you don’t want to use the defaults in `appsettings.json`.  
-4) **Create database**: `dotnet ef database update` (uses migrations in `Migrations/`).  
-5) **Start API**: `dotnet run` (defaults to HTTPS).  
-6) **Explore docs**: open Swagger at `/swagger` (enabled in Development).  
-7) **Call APIs**: supply `Authorization: Bearer <token>` for protected routes.
+### Prerequisites
+- .NET 8 SDK
+- SQL Server (LocalDB, Express, or Full)
+- Stripe account (for payments)
 
-## API surface (high level)
-- `POST /api/auth/register` – Register user; optional `Role` (`User`/`Lawyer`/`Admin`, admin needs `AdminSecret`).
-- `POST /api/auth/login` – Get JWT (returns user info + expiry).
-- `GET /api/auth/me` – Current user profile (auth).
-- `GET /api/users` – Paged users (admin).  
-  `PUT /api/users/update` – Update own profile.  
-  `PUT /api/users/change-password` – Change own password.  
-  `PUT /api/users/update-role` – Admin role change.
-- `POST /api/lawyers/register` – Create lawyer profile for current user.  
-  `GET /api/lawyers` – Paged list (public).  
-  `GET /api/lawyers/{id}` – Lawyer details (public).  
-  `GET /api/lawyers/me` – Current lawyer profile (lawyer/admin).  
-  `PUT /api/lawyers/{id}/verify` – Verify lawyer (admin).
-- `POST /api/bookings` – Create booking; user inferred from token unless admin overrides.  
-  `GET /api/bookings/{id}` – Booking by id (auth).  
-  `GET /api/bookings/user` – Current user’s bookings.  
-  `GET /api/bookings/lawyer` – Bookings for lawyer (lawyer/admin; admin can specify `lawyerId`).  
-  `PUT /api/bookings/{id}/status` – Update status (admin/lawyer).
-- `POST /api/payments/create-session` – Start a payment session for a booking (auth).  
-  `POST /api/payments/confirm` – Mark session paid (auth).
+### Run Locally
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/LawyerConnect.git
+cd LawyerConnect
 
-## Auth & roles (how it works)
-- Users register with SHA256-hashed passwords (see `AuthController`).
-- JWT includes `sub` (user id), email, and role; validated via `JwtBearer` setup in `Program.cs`.
-- `[Authorize]` and `[Authorize(Roles = "...")]` protect routes; controllers derive user id/role from claims.
+# 2. Restore dependencies
+dotnet restore
 
-## Rate limiting
-- `RateLimitingMiddleware` tracks requests per IP+path in a sliding window.  
-- Returns `429 Too Many Requests` with `X-RateLimit-*` headers when exceeded.
+# 3. Update database connection in appsettings.json
+# Edit ConnectionStrings:DefaultConnection
 
-## Database model notes
-- Unique email per user; each lawyer links to exactly one user.
-- Booking keeps references to both user and lawyer with restricted deletes (history safe).
-- PaymentSession is one-to-one with Booking; amounts stored as `decimal(18,2)`. Lawyer lat/long stored as `decimal(10,8)`.
+# 4. Apply migrations
+dotnet ef database update
 
-## Useful commands
-- `dotnet restore` – Restore dependencies.
-- `dotnet ef migrations add <Name>` – Create migration (after models change).
-- `dotnet ef database update` – Apply migrations.
-- `dotnet run` – Start the API.
+# 5. Run the application
+dotnet run
 
-## Development tips
-- Swagger UI in Development helps inspect payloads.
-- Prefer environment variables for secrets in non-dev environments.
-- Adjust `RateLimiting` for production traffic patterns.
+# 6. Access Swagger UI
+# https://localhost:5001/swagger
+```
 
+### Run Tests
+```bash
+# Run all unit tests
+dotnet test
+
+# Run with detailed output
+dotnet test --logger "console;verbosity=detailed"
+```
+
+## 📚 Documentation
+
+### Essential Guides
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - What was built in Phase 1 & 2
+- **[FRONTEND_INTEGRATION_GUIDE.md](FRONTEND_INTEGRATION_GUIDE.md)** - How to integrate frontend with backend
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+- **[BACKEND_DOCUMENTATION.md](BACKEND_DOCUMENTATION.md)** - Complete API reference
+- **[CORE_FLOWS_DOCUMENTATION.md](CORE_FLOWS_DOCUMENTATION.md)** - Business workflows
+
+### Additional Resources
+- **[UNIT_TESTING_COMPLETE.md](UNIT_TESTING_COMPLETE.md)** - Testing documentation
+- **[PROJECT_STUDY_GUIDE.md](PROJECT_STUDY_GUIDE.md)** - Learning resource
+- **[LawyerConnect_SRS.md](LawyerConnect_SRS.md)** - Requirements specification
+- **[LawyerConnect.http](LawyerConnect.http)** - API testing scenarios
+
+## 🏗️ Architecture
+
+### Tech Stack
+- **Framework**: ASP.NET Core 8 Web API
+- **Database**: SQL Server with Entity Framework Core 8
+- **Authentication**: JWT Bearer tokens (HMAC SHA256)
+- **Authorization**: Role-based (User, Lawyer, Admin)
+- **Payments**: Stripe integration
+- **Testing**: xUnit, Moq, FluentAssertions
+
+### Project Structure
+```
+LawyerConnect/
+├── Controllers/          # API endpoints (10 controllers)
+├── Services/            # Business logic (10 services)
+├── Repositories/        # Data access layer
+├── Models/              # Entity models (15+ models)
+├── DTOs/                # Data transfer objects
+├── Mappers/             # Entity-DTO conversions
+├── Data/                # DbContext and migrations
+├── Middlewares/         # Custom middleware
+├── LawyerConnect.Tests/ # Unit tests (123 tests)
+└── docs/                # Archived documentation
+```
+
+### Key Features
+- ✅ User & Lawyer registration with verification
+- ✅ JWT authentication & role-based authorization
+- ✅ Lawyer search with filters (specialization, rating, location)
+- ✅ Booking management with time slot conflict detection
+- ✅ Stripe payment processing with webhooks
+- ✅ Real-time chat system
+- ✅ Review & rating system
+- ✅ Notification system
+- ✅ Admin panel for lawyer verification
+
+## 🔧 Configuration
+
+### appsettings.json
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=LawyerConnect;Trusted_Connection=True;TrustServerCertificate=True"
+  },
+  "Jwt": {
+    "Key": "your-secret-key-minimum-32-characters",
+    "Issuer": "LawyerConnect",
+    "Audience": "LawyerConnectUsers",
+    "ExpiryMinutes": 60
+  },
+  "Stripe": {
+    "SecretKey": "sk_test_...",
+    "PublicKey": "pk_test_...",
+    "WebhookSecret": "whsec_...",
+    "Currency": "usd"
+  }
+}
+```
+
+### Environment Variables (Alternative)
+```bash
+ConnectionStrings__DefaultConnection="Server=...;Database=LawyerConnect;..."
+Jwt__Key="your-secret-key"
+Stripe__SecretKey="sk_test_..."
+Stripe__PublicKey="pk_test_..."
+```
+
+## 📡 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register user
+- `POST /api/auth/register-lawyer` - Register lawyer
+- `POST /api/auth/login` - Login and get JWT token
+
+### Users
+- `GET /api/users/me` - Get current user profile
+- `PUT /api/users/{id}` - Update user profile
+- `GET /api/users` - Get all users (admin)
+
+### Lawyers
+- `GET /api/lawyers/search` - Search lawyers with filters
+- `GET /api/lawyers/{id}` - Get lawyer profile
+- `PUT /api/lawyers/{id}/verify` - Verify lawyer (admin)
+
+### Bookings
+- `POST /api/bookings` - Create booking
+- `GET /api/bookings/user` - Get user bookings
+- `GET /api/bookings/lawyer` - Get lawyer bookings
+- `POST /api/bookings/{id}/cancel` - Cancel booking
+
+### Payments
+- `POST /api/payments/create-session` - Create Stripe payment session
+- `POST /api/payments/webhook` - Stripe webhook handler
+- `GET /api/payments/{sessionId}` - Get payment status
+
+### Reviews
+- `POST /api/reviews` - Create review
+- `GET /api/reviews/lawyer/{lawyerId}` - Get lawyer reviews
+
+### Chat
+- `GET /api/chat/room/{bookingId}` - Get chat room
+- `POST /api/chat/message` - Send message
+- `GET /api/chat/messages/{bookingId}` - Get messages
+
+### Notifications
+- `GET /api/notifications` - Get user notifications
+- `PUT /api/notifications/{id}/read` - Mark as read
+- `GET /api/notifications/unread-count` - Get unread count
+
+### Specializations
+- `GET /api/specializations` - Get all specializations
+- `POST /api/specializations` - Create specialization (admin)
+
+### Admin
+- `GET /api/admin/users` - Get all users
+- `GET /api/admin/lawyers/pending` - Get pending lawyers
+- `POST /api/admin/lawyers/{id}/verify` - Verify lawyer
+- `POST /api/admin/lawyers/{id}/reject` - Reject lawyer
+
+## 🧪 Testing
+
+### Unit Tests (123 Tests)
+```bash
+# Run all tests
+dotnet test
+
+# Test coverage by service:
+# - NotificationService: 10 tests
+# - SpecializationService: 12 tests
+# - PricingService: 15 tests
+# - UserService: 14 tests
+# - LawyerService: 12 tests
+# - AdminService: 14 tests
+# - BookingService: 16 tests
+# - ReviewService: 12 tests
+# - ChatService: 11 tests
+# - PaymentService: 7 tests
+```
+
+### Manual API Testing
+Use the included `LawyerConnect.http` file with REST Client extension in VS Code:
+- 14 complete test scenarios
+- User registration and authentication
+- Lawyer workflows
+- Booking creation
+- Payment processing
+- Chat and reviews
+
+## 🔒 Security
+
+- ✅ JWT token-based authentication
+- ✅ Role-based authorization (User, Lawyer, Admin)
+- ✅ BCrypt password hashing
+- ✅ Input validation on all endpoints
+- ✅ SQL injection protection (EF Core)
+- ✅ CORS configuration
+- ✅ HTTPS enforcement
+
+## 🚀 Deployment
+
+See **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** for detailed deployment instructions including:
+- Azure App Service
+- AWS Elastic Beanstalk
+- Docker containers
+- IIS (Windows Server)
+
+## 📊 Database Schema
+
+### Core Tables
+- **Users** - User accounts and authentication
+- **Lawyers** - Lawyer profiles and verification
+- **Specializations** - Legal specializations
+- **LawyerSpecializations** - Many-to-many relationship
+- **LawyerPricing** - Pricing configuration
+- **Bookings** - Consultation bookings
+- **PaymentSessions** - Payment tracking
+- **Reviews** - Lawyer reviews and ratings
+- **ChatRooms** - Chat room management
+- **ChatMessages** - Chat messages
+- **Notifications** - User notifications
+- **InteractionTypes** - Consultation types
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `dotnet test`
+5. Submit a pull request
+
+## 📝 License
+
+This project is licensed under the MIT License.
+
+## 📞 Support
+
+For questions or issues:
+- Check the documentation in the `docs/` folder
+- Review the API documentation: `BACKEND_DOCUMENTATION.md`
+- See integration guide: `FRONTEND_INTEGRATION_GUIDE.md`
+- Open an issue on GitHub
+
+---
+
+**Built with ❤️ using ASP.NET Core 8**

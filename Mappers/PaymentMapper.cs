@@ -16,7 +16,8 @@ namespace LawyerConnect.Mappers
                 CreatedAt = DateTime.UtcNow
             };
         }
-        public static PaymentSessionResponseDto ToPaymentSessionResponseDto(this PaymentSession payment)
+
+        public static PaymentSessionResponseDto ToPaymentSessionResponseDto(this PaymentSession payment, string? checkoutUrl = null)
         {
             return new PaymentSessionResponseDto
             {
@@ -26,8 +27,14 @@ namespace LawyerConnect.Mappers
                 Status = payment.Status,
                 Provider = payment.Provider,
                 ProviderSessionId = payment.ProviderSessionId,
+                CheckoutUrl = checkoutUrl,
                 CreatedAt = payment.CreatedAt
             };
+        }
+
+        public static List<PaymentSessionResponseDto> ToPaymentSessionResponseDtoList(this IEnumerable<PaymentSession> payments)
+        {
+            return payments.Select(p => p.ToPaymentSessionResponseDto()).ToList();
         }
     }
 }
