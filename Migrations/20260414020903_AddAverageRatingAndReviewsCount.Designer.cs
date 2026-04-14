@@ -4,6 +4,7 @@ using LawyerConnect.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LawyerConnect.Migrations
 {
     [DbContext(typeof(LawyerConnectDbContext))]
-    partial class LawyerConnectDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414020903_AddAverageRatingAndReviewsCount")]
+    partial class AddAverageRatingAndReviewsCount
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -72,7 +75,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.ChatMessage", b =>
@@ -102,7 +105,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("ChatMessages", (string)null);
+                    b.ToTable("ChatMessages");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.ChatRoom", b =>
@@ -127,7 +130,7 @@ namespace LawyerConnect.Migrations
                     b.HasIndex("BookingId")
                         .IsUnique();
 
-                    b.ToTable("ChatRooms", (string)null);
+                    b.ToTable("ChatRooms");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.InteractionType", b =>
@@ -144,7 +147,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("InteractionTypes", (string)null);
+                    b.ToTable("InteractionTypes");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.Lawyer", b =>
@@ -188,7 +191,7 @@ namespace LawyerConnect.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Lawyers", (string)null);
+                    b.ToTable("Lawyers");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.LawyerPricing", b =>
@@ -214,7 +217,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasIndex("SpecializationId");
 
-                    b.ToTable("LawyerPricings", (string)null);
+                    b.ToTable("LawyerPricings");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.LawyerSpecialization", b =>
@@ -229,7 +232,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasIndex("SpecializationId");
 
-                    b.ToTable("LawyerSpecializations", (string)null);
+                    b.ToTable("LawyerSpecializations");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.Notification", b =>
@@ -265,7 +268,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.PaymentSession", b =>
@@ -302,7 +305,7 @@ namespace LawyerConnect.Migrations
                     b.HasIndex("BookingId")
                         .IsUnique();
 
-                    b.ToTable("PaymentSessions", (string)null);
+                    b.ToTable("PaymentSessions");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.RefreshToken", b =>
@@ -356,7 +359,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.Review", b =>
@@ -395,7 +398,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.Specialization", b =>
@@ -416,7 +419,7 @@ namespace LawyerConnect.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Specializations", (string)null);
+                    b.ToTable("Specializations");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.User", b =>
@@ -462,7 +465,7 @@ namespace LawyerConnect.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.Booking", b =>

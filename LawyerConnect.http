@@ -82,9 +82,8 @@ Content-Type: {{contentType}}
     "role": "Lawyer"
   },
   "lawyer": {
-    "bio": "Experienced corporate lawyer with 10+ years in commercial law",
+    "address": "32 El Nasr Street, Alexandria",
     "experienceYears": 10,
-    "licenseNumber": "LAW-2014-12345",
     "latitude": 31.2001,
     "longitude": 29.9187,
     "specializationIds": [1, 2]
@@ -112,9 +111,8 @@ Authorization: Bearer {{lawyerToken}}
 Content-Type: {{contentType}}
 
 {
-  "bio": "Experienced corporate lawyer with 10+ years in commercial law",
+  "address": "32 El Nasr Street, Alexandria",
   "experienceYears": 10,
-  "licenseNumber": "LAW-2014-12345",
   "latitude": 31.2001,
   "longitude": 29.9187,
   "specializationIds": [1, 2]
@@ -400,14 +398,18 @@ POST {{baseUrl}}/api/chat/{{bookingId}}/messages
 Authorization: Bearer {{userToken}}
 Content-Type: {{contentType}}
 
-"Hello Dr. Mohamed, I have a question about the contract clause we discussed."
+{
+  "message": "Hello Dr. Mohamed, I have a question about the contract clause we discussed."
+}
 
 ### 9.3 Send Message (Lawyer to User)
 POST {{baseUrl}}/api/chat/{{bookingId}}/messages
 Authorization: Bearer {{lawyerToken}}
 Content-Type: {{contentType}}
 
-"Hello Ahmed, I'd be happy to clarify. Which specific clause are you referring to?"
+{
+  "message": "Hello Ahmed, I'd be happy to clarify. Which specific clause are you referring to?"
+}
 
 ### 9.4 Get Messages (Paginated)
 GET {{baseUrl}}/api/chat/{{bookingId}}/messages?page=1&limit=50
@@ -466,7 +468,7 @@ GET {{baseUrl}}/api/notifications?page=1&limit=1
 Authorization: Bearer {{userToken}}
 
 ###
-@notificationId = {{getNotifications.response.body.[0].id}}
+@notificationId = {{getNotifications.response.body[0].id}}
 
 ###
 PUT {{baseUrl}}/api/notifications/{{notificationId}}/read
@@ -566,7 +568,9 @@ POST {{baseUrl}}/api/chat/{{bookingId}}/messages
 Authorization: Bearer {{userToken}}
 Content-Type: {{contentType}}
 
-"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+{
+  "message": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+}
 
 ### 13.9 Test Access Other User's Notification
 PUT {{baseUrl}}/api/notifications/999/read
@@ -644,6 +648,9 @@ Content-Type: {{contentType}}
   "bookingId": {{e2eBookingId}}
 }
 
+###
+@e2ePaymentSessionId = {{e2ePayment.response.body.id}}
+
 ### 14.7 Lawyer Confirms Booking
 PUT {{baseUrl}}/api/bookings/{{e2eBookingId}}/status
 Authorization: Bearer {{lawyerToken}}
@@ -658,14 +665,18 @@ POST {{baseUrl}}/api/chat/{{e2eBookingId}}/messages
 Authorization: Bearer {{e2eUserToken}}
 Content-Type: {{contentType}}
 
-"Hello, I'm looking forward to our consultation. Should I bring any specific documents?"
+{
+  "message": "Hello, I'm looking forward to our consultation. Should I bring any specific documents?"
+}
 
 ### 14.9 Lawyer Replies
 POST {{baseUrl}}/api/chat/{{e2eBookingId}}/messages
 Authorization: Bearer {{lawyerToken}}
 Content-Type: {{contentType}}
 
-"Hello Sara, yes please bring the property deed, purchase agreement, and any correspondence with the seller."
+{
+  "message": "Hello Sara, yes please bring the property deed, purchase agreement, and any correspondence with the seller."
+}
 
 ### 14.10 Lawyer Completes Booking
 PUT {{baseUrl}}/api/bookings/{{e2eBookingId}}/status
