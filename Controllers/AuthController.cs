@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,7 +7,6 @@ using LawyerConnect.Repositories;
 using LawyerConnect.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
 namespace LawyerConnect.Controllers
 {
@@ -16,148 +14,246 @@ namespace LawyerConnect.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        private readonly IAuthService _authService;
         private readonly IUserRepository _userRepository;
-        private readonly IUserService _userService;
         private readonly IConfiguration _config;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
+            IAuthService authService,
             IUserRepository userRepository,
-            IUserService userService,
             IConfiguration config,
             ILogger<AuthController> logger)
         {
+            _authService = authService;
             _userRepository = userRepository;
-            _userService = userService;
             _config = config;
             _logger = logger;
         }
 
         [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<ActionResult<UserResponseDto>> Register(UserRegisterDto dto)
+        public async Task<ActionResult<AuthResponseDto>> Register(RegisterRequestDto dto)
         {
-            var existing = await _userRepository.GetByEmailAsync(dto.Email);
-            if (existing != null)
+            try
             {
-                return Conflict("Email already registered.");
-            }
-
-            // Determine role
-            string role = "User"; // Default role
-            
-            if (!string.IsNullOrWhiteSpace(dto.Role))
-            {
-                var requestedRole = dto.Role.Trim();
-                
-                // Validate role
-                if (requestedRole != "User" && requestedRole != "Lawyer" && requestedRole != "Admin")
+                // Validate required fields
+                if (string.IsNullOrWhiteSpace(dto.User.Email) || string.IsNullOrWhiteSpace(dto.User.Password))
                 {
-                    return BadRequest("Invalid role. Allowed roles: User, Lawyer, Admin");
+                    return BadRequest("Email and password are required.");
                 }
 
-                // Check if trying to register as Admin
-                if (requestedRole == "Admin")
+                var existing = await _userRepository.GetByEmailAsync(dto.User.Email);
+                if (existing != null)
                 {
-                    var adminSecret = _config["AdminSecret"];
-                    if (string.IsNullOrWhiteSpace(adminSecret) || dto.AdminSecret != adminSecret)
+                    return Conflict("Email already registered.");
+                }
+
+                // Determine role
+                string role = "User"; // Default role if not provided 
+
+                if (!string.IsNullOrWhiteSpace(dto.User.Role)) //if role provided 
+                {
+                    var requestedRole = dto.User.Role.Trim();
+
+                    // Validate role
+                    if (requestedRole != "User" && requestedRole != "Lawyer" && requestedRole != "Admin")
                     {
-                        return Unauthorized("Admin registration requires a valid admin secret key.");
+                        return BadRequest("Invalid role. Allowed roles: User, Lawyer, Admin");
                     }
-                    role = "Admin";
-                }
-                else
-                {
-                    role = requestedRole;
-                }
-            }
 
-            var passwordHash = HashPassword(dto.Password);
-            var result = await _userService.RegisterUserAsync(dto, passwordHash, role);
-            return CreatedAtAction(nameof(Me), new { }, result);
+                    // Check if trying to register as Admin
+                    if (requestedRole == "Admin")
+                    {
+                        var adminSecret = _config["AdminSecret"];
+                        if (string.IsNullOrWhiteSpace(adminSecret) || dto.User.AdminSecret != adminSecret)
+                        {
+                            return Unauthorized("Admin registration requires a valid admin secret key.");
+                        }
+                        role = "Admin";
+                    }
+                    else
+                    {
+                        role = requestedRole; // User or Lawyer
+                    }
+                }
+
+                // If registering as lawyer, validate lawyer data is provided
+                if (role == "Lawyer" && dto.Lawyer == null)
+                {
+                    return BadRequest("Lawyer profile information is required when registering as a lawyer.");
+                }
+
+                // If lawyer data is provided but role is not Lawyer, set role to Lawyer
+                if (dto.Lawyer != null && role == "User")
+                {
+                    role = "Lawyer";
+                }
+
+                var passwordHash = HashObject(dto.User.Password);
+                var result = await _authService.RegisterAsync(dto, passwordHash, role);
+                return CreatedAtAction(nameof(Me), new { }, result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Registration error for email: {Email}", dto.User?.Email ?? "unknown");
+                return StatusCode(500, "An error occurred during registration.");
+            }
         }
 
+
         [HttpPost("login")]
-        [AllowAnonymous] // means no need authorization in this route 
+        [AllowAnonymous]
         public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
         {
-            var user = await _userRepository.GetByEmailAsync(dto.Email);
-            if (user == null)
+            try
             {
-                return Unauthorized("Invalid credentials.");
-            }
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                var userAgent = Request.Headers.UserAgent.ToString();
 
-            var hashedInput = HashPassword(dto.Password);
-            if (!string.Equals(user.PasswordHash, hashedInput, StringComparison.Ordinal))
-            {
-                return Unauthorized("Invalid credentials.");
-            }
+                var result = await _authService.LoginAsync(dto, ipAddress, userAgent);
 
-            var token = GenerateJwt(user.Id, user.Email, user.Role, out var expiresAt);
-            var response = new AuthResponseDto
+                // Set refresh token in HttpOnly cookie
+                if (!string.IsNullOrWhiteSpace(result.RefreshToken) && result.RefreshTokenExpires.HasValue)
+                {
+                    Response.Cookies.Append("refreshToken", result.RefreshToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.Lax,
+                        Expires = result.RefreshTokenExpires
+                    });
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
             {
-                Token = token,
-                ExpiresAt = expiresAt,
-                User = user.ToUserResponseDto()
-            };
-            return Ok(response);
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Login error: {ex.Message}");
+                return StatusCode(500, "An error occurred during login.");
+            }
         }
 
         [HttpGet("me")]
-        [Authorize] // need authorization in this route 
+        [Authorize]
         public async Task<ActionResult<UserResponseDto>> Me()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            try
             {
-                return Unauthorized();
-            }
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized();
+                }
 
-            var user = await _userService.GetByIdAsync(userId);
-            if (user == null)
+                var user = await _authService.GetUserByIdAsync(userId);
+                return Ok(user);
+            }
+            catch (KeyNotFoundException)
             {
                 return NotFound();
             }
-
-            return Ok(user);
-        }
-
-        private string GenerateJwt(int userId, string email, string role, out DateTime expiresAt)
-        {
-            var key = _config["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key missing.");
-            var issuer = _config["Jwt:Issuer"];
-            var audience = _config["Jwt:Audience"];
-            var expiresMinutes = int.TryParse(_config["Jwt:ExpiresMinutes"], out var exp) ? exp : 120;
-
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new List<Claim>
+            catch (Exception ex)
             {
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Role, role)
-            };
-
-            expiresAt = DateTime.UtcNow.AddMinutes(expiresMinutes);
-
-            var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
-                claims: claims,
-                expires: expiresAt,
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+                _logger.LogError($"Get user error: {ex.Message}");
+                return StatusCode(500, "An error occurred.");
+            }
         }
 
-        private static string HashPassword(string password)
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        public async Task<ActionResult<AuthResponseDto>> Refresh()
+        {
+            try
+            {
+                // Get refresh token from cookie
+                if (!Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+                {
+                    _logger.LogWarning("Refresh attempt failed: No refresh token in cookie");
+                    return Unauthorized("Refresh token not found.");
+                }
+
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                var userAgent = Request.Headers.UserAgent.ToString();
+
+                var result = await _authService.RefreshTokenAsync(refreshToken, ipAddress, userAgent);
+
+                // Update refresh token in HttpOnly cookie
+                if (!string.IsNullOrWhiteSpace(result.RefreshToken) && result.RefreshTokenExpires.HasValue)
+                {
+                    Response.Cookies.Append("refreshToken", result.RefreshToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.Lax,
+                        Expires = result.RefreshTokenExpires
+                    });
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Response.Cookies.Delete("refreshToken");
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Token refresh error: {ex.Message}");
+                return StatusCode(500, "An error occurred during token refresh.");
+            }
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout([FromQuery] bool logoutAllDevices = false)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    _logger.LogWarning("Logout attempt failed: Invalid user ID claim");
+                    return Unauthorized();
+                }
+
+                // Get current refresh token from cookie
+                Request.Cookies.TryGetValue("refreshToken", out var refreshToken);
+
+                await _authService.LogoutAsync(userId, refreshToken, logoutAllDevices);
+
+                // Clear the refresh token cookie
+                Response.Cookies.Delete("refreshToken");
+
+                return Ok(new { message = logoutAllDevices ? "Logged out from all devices." : "Logged out successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Logout error: {ex.Message}");
+                return StatusCode(500, "An error occurred during logout.");
+            }
+        }
+
+
+
+        #region --- Utilities ---
+
+        /// <summary>
+        /// Hash a string using SHA256
+        /// </summary>
+        private static string HashObject(string input)
         {
             using var sha = SHA256.Create();
-            var bytes = Encoding.UTF8.GetBytes(password);
+            var bytes = Encoding.UTF8.GetBytes(input);
             var hash = sha.ComputeHash(bytes);
             return Convert.ToHexString(hash);
         }
+
+        #endregion
     }
 }
 

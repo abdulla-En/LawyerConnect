@@ -28,6 +28,7 @@ namespace LawyerConnect.Mappers
                 Role = user.Role,
                 Phone = user.Phone,
                 City = user.City,
+                ProfilePhoto = user.ProfilePhoto,
                 CreatedAt = user.CreatedAt
             };
         }

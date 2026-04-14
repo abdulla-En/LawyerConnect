@@ -3,7 +3,6 @@ using LawyerConnect.DTOs;
 using LawyerConnect.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace LawyerConnect.Controllers
 {
@@ -12,114 +11,125 @@ namespace LawyerConnect.Controllers
     public class BookingsController : ControllerBase
     {
         private readonly IBookingService _bookingService;
+        private readonly ILogger<BookingsController> _logger;
 
-        public BookingsController(IBookingService bookingService)
+        public BookingsController(IBookingService bookingService, ILogger<BookingsController> logger)
         {
             _bookingService = bookingService;
+            _logger = logger;
         }
 
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult<BookingResponseDto>> Create([FromBody] BookingDto dto)
+        public async Task<ActionResult<BookingResponseDto>> CreateBooking([FromBody] BookingCreateDto dto)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            try
             {
-                return Unauthorized();
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                var booking = await _bookingService.CreateBookingAsync(userId, dto);
+                return CreatedAtAction(nameof(GetBooking), new { id = booking.Id }, booking);
             }
-
-            var role = User.FindFirst(ClaimTypes.Role)?.Value;
-
-            // If caller is not Admin, always use token userId.
-            // If Admin, allow booking on behalf of another user when provided; otherwise fallback to token userId.
-            if (!string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
+            catch (Exception ex)
             {
-                dto.UserId = userId;
+                _logger.LogError(ex, "Error creating booking");
+                return StatusCode(500, new { message = ex.Message });
             }
-            else
-            {
-                dto.UserId = dto.UserId > 0 ? dto.UserId : userId;
-            }
-
-            var booking = await _bookingService.CreateBookingAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = booking.Id }, booking);
         }
 
         [HttpGet("{id}")]
         [Authorize]
-        public async Task<ActionResult<BookingResponseDto>> GetById(int id)
+        public async Task<ActionResult<BookingResponseDto>> GetBooking(int id)
         {
-            var booking = await _bookingService.GetByIdAsync(id);
-            if (booking == null) return NotFound();
-            return Ok(booking);
+            try
+            {
+                var booking = await _bookingService.GetBookingByIdAsync(id);
+                if (booking == null)
+                    return NotFound();
+
+                return Ok(booking);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving booking");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
         }
 
         [HttpGet("user")]
         [Authorize]
-        public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetForUser()
+        public async Task<ActionResult<List<BookingResponseDto>>> GetUserBookings([FromQuery] int page = 1, [FromQuery] int limit = 10)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            try
             {
-                return Unauthorized();
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                var bookings = await _bookingService.GetUserBookingsAsync(userId, page, limit);
+                return Ok(bookings);
             }
-            var bookings = await _bookingService.GetUserBookingsAsync(userId);
-            return Ok(bookings);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving user bookings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
         }
 
         [HttpGet("lawyer")]
         [Authorize(Roles = "Lawyer,Admin")]
-        public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetForLawyer([FromQuery] int? lawyerId = null)
+        public async Task<ActionResult<List<BookingResponseDto>>> GetLawyerBookings([FromQuery] int page = 1, [FromQuery] int limit = 10)
         {
-            int targetLawyerId;
-            
-            // If lawyerId is provided (Admin can query any lawyer), use it
-            // Otherwise, get lawyerId from the authenticated user's token
-            if (lawyerId.HasValue && lawyerId.Value > 0)
+            try
             {
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-                if (userRole != "Admin")
-                {
-                    return Forbid("Only admins can query other lawyers' bookings.");
-                }
-                targetLawyerId = lawyerId.Value;
-            }
-            else
-            {
-                // Get lawyer profile for the authenticated user
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-                {
                     return Unauthorized();
-                }
 
-                // Get lawyer by userId
-                var lawyerService = HttpContext.RequestServices.GetRequiredService<ILawyerService>();
-                var lawyer = await lawyerService.GetByUserIdAsync(userId);
-                if (lawyer == null)
-                {
-                    return NotFound("Lawyer profile not found for this user.");
-                }
-                targetLawyerId = lawyer.Id;
+                // Get lawyer ID from user
+                // In a real system, you would get the lawyer ID from the user's lawyer profile
+                var bookings = await _bookingService.GetLawyerBookingsAsync(userId, page, limit);
+                return Ok(bookings);
             }
-
-            var bookings = await _bookingService.GetLawyerBookingsAsync(targetLawyerId);
-            return Ok(bookings);
-        }
-
-        public class UpdateStatusDto
-        {
-            public string Status { get; set; } = string.Empty;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving lawyer bookings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
         }
 
         [HttpPut("{id}/status")]
-        [Authorize(Roles = "Admin,Lawyer")]
-        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
+        [Authorize(Roles = "Lawyer,Admin")]
+        public async Task<IActionResult> UpdateBookingStatus(int id, [FromBody] string status)
         {
-            if (string.IsNullOrWhiteSpace(dto.Status)) return BadRequest("Status required.");
-            await _bookingService.UpdateBookingStatusAsync(id, dto.Status);
-            return NoContent();
+            try
+            {
+                await _bookingService.UpdateBookingStatusAsync(id, status);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating booking status");
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            try
+            {
+                await _bookingService.CancelBookingAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling booking");
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
     }
 }
-

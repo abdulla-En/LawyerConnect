@@ -36,6 +36,12 @@ namespace LawyerConnect.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DurationSnapshot")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InteractionTypeId")
+                        .HasColumnType("int");
+
                     b.Property<int>("LawyerId")
                         .HasColumnType("int");
 
@@ -43,11 +49,13 @@ namespace LawyerConnect.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<decimal>("PriceSnapshot")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("TransactionId")
+                    b.Property<int>("SpecializationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -56,11 +64,84 @@ namespace LawyerConnect.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("InteractionTypeId");
+
                     b.HasIndex("LawyerId");
+
+                    b.HasIndex("SpecializationId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("Bookings");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.ChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatRoomId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatRoomId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("ChatMessages");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.ChatRoom", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.ToTable("ChatRooms");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.InteractionType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InteractionTypes");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.Lawyer", b =>
@@ -81,24 +162,17 @@ namespace LawyerConnect.Migrations
                     b.Property<int>("ExperienceYears")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("bit");
+
                     b.Property<decimal>("Latitude")
                         .HasColumnType("decimal(10,8)");
 
                     b.Property<decimal>("Longitude")
                         .HasColumnType("decimal(10,8)");
 
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Specialization")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("UserId")
                         .HasColumnType("int");
-
-                    b.Property<bool>("Verified")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -106,6 +180,83 @@ namespace LawyerConnect.Migrations
                         .IsUnique();
 
                     b.ToTable("Lawyers");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.LawyerPricing", b =>
+                {
+                    b.Property<int>("LawyerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SpecializationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InteractionTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("LawyerId", "SpecializationId", "InteractionTypeId");
+
+                    b.HasIndex("InteractionTypeId");
+
+                    b.HasIndex("SpecializationId");
+
+                    b.ToTable("LawyerPricings");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.LawyerSpecialization", b =>
+                {
+                    b.Property<int>("LawyerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SpecializationId")
+                        .HasColumnType("int");
+
+                    b.HasKey("LawyerId", "SpecializationId");
+
+                    b.HasIndex("SpecializationId");
+
+                    b.ToTable("LawyerSpecializations");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.PaymentSession", b =>
@@ -145,6 +296,120 @@ namespace LawyerConnect.Migrations
                     b.ToTable("PaymentSessions");
                 });
 
+            modelBuilder.Entity("LawyerConnect.Models.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("RevokeReason")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Revoked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("RevokedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReplacedByTokenId")
+                        .IsUnique()
+                        .HasFilter("[ReplacedByTokenId] IS NOT NULL");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LawyerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("LawyerId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Reviews");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.Specialization", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Specializations");
+                });
+
             modelBuilder.Entity("LawyerConnect.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -176,6 +441,9 @@ namespace LawyerConnect.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ProfilePhoto")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -190,9 +458,21 @@ namespace LawyerConnect.Migrations
 
             modelBuilder.Entity("LawyerConnect.Models.Booking", b =>
                 {
+                    b.HasOne("LawyerConnect.Models.InteractionType", "InteractionType")
+                        .WithMany("Bookings")
+                        .HasForeignKey("InteractionTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("LawyerConnect.Models.Lawyer", "Lawyer")
                         .WithMany("Bookings")
                         .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LawyerConnect.Models.Specialization", "Specialization")
+                        .WithMany()
+                        .HasForeignKey("SpecializationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -202,9 +482,43 @@ namespace LawyerConnect.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("InteractionType");
+
                     b.Navigation("Lawyer");
 
+                    b.Navigation("Specialization");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.ChatMessage", b =>
+                {
+                    b.HasOne("LawyerConnect.Models.ChatRoom", "ChatRoom")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatRoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LawyerConnect.Models.User", "Sender")
+                        .WithMany("ChatMessages")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChatRoom");
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.ChatRoom", b =>
+                {
+                    b.HasOne("LawyerConnect.Models.Booking", "Booking")
+                        .WithOne("ChatRoom")
+                        .HasForeignKey("LawyerConnect.Models.ChatRoom", "BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.Lawyer", b =>
@@ -212,6 +526,63 @@ namespace LawyerConnect.Migrations
                     b.HasOne("LawyerConnect.Models.User", "User")
                         .WithOne("LawyerProfile")
                         .HasForeignKey("LawyerConnect.Models.Lawyer", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.LawyerPricing", b =>
+                {
+                    b.HasOne("LawyerConnect.Models.InteractionType", "InteractionType")
+                        .WithMany("Pricing")
+                        .HasForeignKey("InteractionTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LawyerConnect.Models.Lawyer", "Lawyer")
+                        .WithMany("Pricing")
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LawyerConnect.Models.Specialization", "Specialization")
+                        .WithMany("Pricing")
+                        .HasForeignKey("SpecializationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InteractionType");
+
+                    b.Navigation("Lawyer");
+
+                    b.Navigation("Specialization");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.LawyerSpecialization", b =>
+                {
+                    b.HasOne("LawyerConnect.Models.Lawyer", "Lawyer")
+                        .WithMany("Specializations")
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LawyerConnect.Models.Specialization", "Specialization")
+                        .WithMany("Lawyers")
+                        .HasForeignKey("SpecializationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lawyer");
+
+                    b.Navigation("Specialization");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.Notification", b =>
+                {
+                    b.HasOne("LawyerConnect.Models.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -229,21 +600,103 @@ namespace LawyerConnect.Migrations
                     b.Navigation("Booking");
                 });
 
+            modelBuilder.Entity("LawyerConnect.Models.RefreshToken", b =>
+                {
+                    b.HasOne("LawyerConnect.Models.RefreshToken", "Refreshtoken")
+                        .WithOne()
+                        .HasForeignKey("LawyerConnect.Models.RefreshToken", "ReplacedByTokenId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LawyerConnect.Models.User", "User")
+                        .WithMany("Refreshtokns")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Refreshtoken");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.Review", b =>
+                {
+                    b.HasOne("LawyerConnect.Models.Booking", "Booking")
+                        .WithOne("Review")
+                        .HasForeignKey("LawyerConnect.Models.Review", "BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LawyerConnect.Models.Lawyer", "Lawyer")
+                        .WithMany("Reviews")
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LawyerConnect.Models.User", "User")
+                        .WithMany("Reviews")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Lawyer");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LawyerConnect.Models.Booking", b =>
                 {
+                    b.Navigation("ChatRoom");
+
                     b.Navigation("PaymentSession");
+
+                    b.Navigation("Review");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.ChatRoom", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.InteractionType", b =>
+                {
+                    b.Navigation("Bookings");
+
+                    b.Navigation("Pricing");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.Lawyer", b =>
                 {
                     b.Navigation("Bookings");
+
+                    b.Navigation("Pricing");
+
+                    b.Navigation("Reviews");
+
+                    b.Navigation("Specializations");
+                });
+
+            modelBuilder.Entity("LawyerConnect.Models.Specialization", b =>
+                {
+                    b.Navigation("Lawyers");
+
+                    b.Navigation("Pricing");
                 });
 
             modelBuilder.Entity("LawyerConnect.Models.User", b =>
                 {
                     b.Navigation("Bookings");
 
+                    b.Navigation("ChatMessages");
+
                     b.Navigation("LawyerProfile");
+
+                    b.Navigation("Notifications");
+
+                    b.Navigation("Refreshtokns");
+
+                    b.Navigation("Reviews");
                 });
 #pragma warning restore 612, 618
         }

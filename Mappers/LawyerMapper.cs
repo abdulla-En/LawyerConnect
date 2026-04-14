@@ -5,23 +5,20 @@ namespace LawyerConnect.Mappers
 {
     public static class LawyerMapper
     {
-        public static Lawyer ToLawyer(this LawyerRegisterDto dto, int userId) // userId extracted from token
+        public static Lawyer ToLawyer(this LawyerRegisterDto dto, int userId)
         {
             return new Lawyer
             {
                 UserId = userId,
-                Specialization = dto.Specialization,
                 ExperienceYears = dto.ExperienceYears,
-                Price = dto.Price,
                 Address = dto.Address,
                 Latitude = dto.Latitude,
                 Longitude = dto.Longitude,
-                Verified = false,
+                IsVerified = false,
                 CreatedAt = DateTime.UtcNow
             };
         }
-        // call without (this) , extention method => var lawyer = LawyerMapper.ToLawyer(dto)
-        // call with (this) , extention method => dto.ToLawyer
+
         public static LawyerResponseDto ToLawyerResponseDto(this Lawyer lawyer)
         {
             return new LawyerResponseDto
@@ -30,13 +27,16 @@ namespace LawyerConnect.Mappers
                 UserId = lawyer.UserId,
                 FullName = lawyer.User?.FullName ?? string.Empty,
                 Email = lawyer.User?.Email ?? string.Empty,
-                Specialization = lawyer.Specialization,
                 ExperienceYears = lawyer.ExperienceYears,
-                Price = lawyer.Price,
-                Verified = lawyer.Verified,
+                IsVerified = lawyer.IsVerified,
                 Address = lawyer.Address,
                 Latitude = lawyer.Latitude,
                 Longitude = lawyer.Longitude,
+                Specializations = lawyer.Specializations?.Select(s => s.Specialization.Name).ToList() ?? new List<string>(),
+                AverageRating = lawyer.Reviews?.Any() == true 
+                    ? (decimal)lawyer.Reviews.Average(r => r.Rating) 
+                    : 0,
+                ReviewCount = lawyer.Reviews?.Count ?? 0,
                 CreatedAt = lawyer.CreatedAt
             };
         }

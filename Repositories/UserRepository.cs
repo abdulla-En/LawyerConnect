@@ -26,6 +26,9 @@ namespace LawyerConnect.Repositories
                 .Take(limit) // Fetch @limit Rows Only 
                 .ToListAsync(); // convert the last Linq expr => sql query and retrieve a list<user> which is casting to IEnumerable auto
 
+        public async Task<List<User>> GetAllAsync() =>
+            await _context.Users.ToListAsync();
+
         public async Task AddAsync(User user)
         {
             await _context.Users.AddAsync(user);
@@ -36,6 +39,12 @@ namespace LawyerConnect.Repositories
         {
             _context.Users.Update(user); // no DB connection just modified the user state in memory NO Async
             await _context.SaveChangesAsync(); // no send updates from memorry to the DB
+        }
+
+        public async Task DeleteAsync(User user)
+        {
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
         }
     }
 }

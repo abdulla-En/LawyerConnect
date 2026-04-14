@@ -8,6 +8,7 @@ namespace LawyerConnect.DTOs
         public string Role { get; set; }= string.Empty;
         public string Phone { get; set; }= string.Empty;
         public string City { get; set; }= string.Empty;
+        public string? ProfilePhoto { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }
