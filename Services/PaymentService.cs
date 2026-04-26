@@ -83,8 +83,23 @@ namespace LawyerConnect.Services
                     return existingSession.ToPaymentSessionResponseDto();
                 }
 
-                // Create Stripe Checkout Session
-                var (stripeSessionId, checkoutUrl) = await CreateStripeCheckoutSessionAsync(bookingId, amount);
+                // Create Stripe Checkout Session (skip if no real key configured)
+                var stripeKey = _configuration["Stripe:SecretKey"] ?? "";
+                var isStripeConfigured = !string.IsNullOrWhiteSpace(stripeKey)
+                    && !stripeKey.StartsWith("YOUR_");
+
+                string stripeSessionId;
+                string? checkoutUrl = null;
+
+                if (isStripeConfigured)
+                {
+                    (stripeSessionId, checkoutUrl) = await CreateStripeCheckoutSessionAsync(bookingId, amount);
+                }
+                else
+                {
+                    stripeSessionId = $"sim_{Guid.NewGuid():N}";
+                    _logger.LogWarning("Stripe not configured — using simulated payment session for booking {BookingId}", bookingId);
+                }
 
                 // Create new payment session
                 var paymentSession = new PaymentSession
@@ -92,7 +107,7 @@ namespace LawyerConnect.Services
                     BookingId = bookingId,
                     Amount = amount,
                     Status = "Pending",
-                    Provider = "Stripe",
+                    Provider = isStripeConfigured ? "Stripe" : "Simulated",
                     ProviderSessionId = stripeSessionId,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -263,8 +278,13 @@ namespace LawyerConnect.Services
                     throw new InvalidOperationException("Can only refund successful payments");
                 }
 
-                // Process Stripe refund
-                await ProcessStripeRefundAsync(paymentSession.ProviderSessionId, paymentSession.Amount);
+                // Process Stripe refund (skip if not configured)
+                var stripeKey = _configuration["Stripe:SecretKey"] ?? "";
+                if (!string.IsNullOrWhiteSpace(stripeKey) && !stripeKey.StartsWith("YOUR_")
+                    && paymentSession.Provider == "Stripe")
+                {
+                    await ProcessStripeRefundAsync(paymentSession.ProviderSessionId, paymentSession.Amount);
+                }
 
                 // Update payment session status to indicate refund
                 paymentSession.Status = "Refunded";

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, Clock, Check } from 'lucide-react'
 import { apiService } from '../services/api'
+import type { InteractionTypeDto, LawyerPricingDto, SpecializationDto } from '../types'
 
 interface BookingCalendarProps {
   lawyerId: number
@@ -12,8 +13,40 @@ interface BookingCalendarProps {
 export default function BookingCalendar({ lawyerId, onSuccess, onCancel }: BookingCalendarProps) {
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedTime, setSelectedTime] = useState<string>('')
+  const [selectedPricingKey, setSelectedPricingKey] = useState<string>('')
+  const [pricings, setPricings] = useState<LawyerPricingDto[]>([])
+  const [interactionTypes, setInteractionTypes] = useState<InteractionTypeDto[]>([])
+  const [specializations, setSpecializations] = useState<SpecializationDto[]>([])
+  const [isPricingLoading, setIsPricingLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string>('')
+
+  useEffect(() => {
+    const loadPricingOptions = async () => {
+      setIsPricingLoading(true)
+      try {
+        const [pricingData, typesData, specsData] = await Promise.all([
+          apiService.getLawyerPricing(lawyerId),
+          apiService.getInteractionTypes(),
+          apiService.getSpecializations()
+        ])
+
+        setPricings(pricingData)
+        setInteractionTypes(typesData)
+        setSpecializations(specsData)
+
+        if (pricingData.length > 0) {
+          setSelectedPricingKey(`${pricingData[0].specializationId}-${pricingData[0].interactionTypeId}`)
+        }
+      } catch (err) {
+        setError(`Failed to load pricing options for this lawyer: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      } finally {
+        setIsPricingLoading(false)
+      }
+    }
+
+    loadPricingOptions()
+  }, [lawyerId])
 
   const today = new Date()
   const dates = Array.from({ length: 14 }, (_, i) => {
@@ -27,8 +60,8 @@ export default function BookingCalendar({ lawyerId, onSuccess, onCancel }: Booki
   ]
 
   const handleSubmit = async () => {
-    if (!selectedDate || !selectedTime) {
-      setError('Please select both date and time')
+    if (!selectedDate || !selectedTime || !selectedPricingKey) {
+      setError('Please select service, date, and time')
       return
     }
 
@@ -37,8 +70,14 @@ export default function BookingCalendar({ lawyerId, onSuccess, onCancel }: Booki
       setError('')
       
       const dateTime = `${selectedDate}T${selectedTime}:00`
+      const [specializationIdRaw, interactionTypeIdRaw] = selectedPricingKey.split('-')
+      const specializationId = Number(specializationIdRaw)
+      const interactionTypeId = Number(interactionTypeIdRaw)
+
       await apiService.createBooking({
         lawyerId,
+        specializationId,
+        interactionTypeId,
         date: dateTime
       })
       
@@ -52,6 +91,47 @@ export default function BookingCalendar({ lawyerId, onSuccess, onCancel }: Booki
 
   return (
     <div className="space-y-6">
+      {/* Service Selection */}
+      <div>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Select Service
+        </label>
+        {isPricingLoading ? (
+          <div className="p-3 bg-gray-100 dark:bg-dark-900 rounded-xl text-sm text-gray-500 dark:text-gray-400">
+            Loading service options...
+          </div>
+        ) : pricings.length === 0 ? (
+          <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-xl text-sm text-yellow-800 dark:text-yellow-300">
+            This lawyer has no pricing configured yet. Booking is unavailable.
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-44 overflow-y-auto">
+            {pricings.map((pricing) => {
+              const key = `${pricing.specializationId}-${pricing.interactionTypeId}`
+              const spec = specializations.find(s => s.id === pricing.specializationId)
+              const interaction = interactionTypes.find(i => i.id === pricing.interactionTypeId)
+              const isSelected = selectedPricingKey === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedPricingKey(key)}
+                  className={`w-full text-left p-3 rounded-xl border transition-all ${
+                    isSelected
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                      : 'border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-900 hover:bg-gray-100 dark:hover:bg-dark-800'
+                  }`}
+                >
+                  <p className="font-semibold text-gray-900 dark:text-white">{spec?.name || 'Service'}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {interaction?.name || 'Consultation'} • {pricing.durationMinutes} mins • {pricing.price} EGP
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Date Selection */}
       <div>
         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -154,7 +234,7 @@ export default function BookingCalendar({ lawyerId, onSuccess, onCancel }: Booki
         </button>
         <button
           onClick={handleSubmit}
-          disabled={!selectedDate || !selectedTime || isSubmitting}
+          disabled={!selectedDate || !selectedTime || !selectedPricingKey || isSubmitting || pricings.length === 0}
           className="flex-1 py-3 bg-gradient-to-r from-primary-500 to-primary-700 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isSubmitting ? (

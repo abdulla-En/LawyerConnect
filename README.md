@@ -1,274 +1,290 @@
 # LawyerConnect - Legal Consultation Platform
 
-A comprehensive legal consultation platform connecting clients with verified lawyers. Built with ASP.NET Core 8, featuring booking management, real-time chat, Stripe payment processing, and review systems.
+A comprehensive legal consultation platform connecting clients with verified lawyers. Built with ASP.NET Core 8 backend and React TypeScript frontend, featuring booking management, real-time chat, payment processing, and review systems.
 
 ## 🎯 Project Status
 
-**✅ BACKEND COMPLETE - READY FOR FRONTEND INTEGRATION**
+**✅ FULL-STACK APPLICATION - PRODUCTION READY**
 
+### Backend
+- ✅ ASP.NET Core 8 Web API
 - ✅ 10 Production-ready services
-- ✅ 123 Passing unit tests
-- ✅ Zero build errors
-- ✅ Zero test failures
-- ✅ Stripe payment integration
+- ✅ JWT authentication & authorization
+- ✅ Stripe payment integration (with simulated fallback)
 - ✅ Real-time chat system
-- ✅ Comprehensive documentation
+- ✅ Comprehensive API endpoints
+
+### Frontend
+- ✅ React 18 with TypeScript
+- ✅ Tailwind CSS + Framer Motion
+- ✅ Complete user flows
+- ✅ Responsive design
+- ✅ Dark mode support
+- ✅ Real-time notifications
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - .NET 8 SDK
+- Node.js 18+ and npm
 - SQL Server (LocalDB, Express, or Full)
-- Stripe account (for payments)
 
-### Run Locally
+### Backend Setup
 ```bash
-# 1. Clone the repository
-git clone https://github.com/yourusername/LawyerConnect.git
+# 1. Navigate to project root
 cd LawyerConnect
 
 # 2. Restore dependencies
 dotnet restore
 
-# 3. Update database connection in appsettings.json
-# Edit ConnectionStrings:DefaultConnection
+# 3. Update database connection in appsettings.json if needed
+# Default: Server=.;Database=LawyerConnectDB;Trusted_Connection=True
 
-# 4. Apply migrations
-dotnet ef database update
-
-# 5. Run the application
+# 4. Run the application (migrations apply automatically)
 dotnet run
 
-# 6. Access Swagger UI
-# https://localhost:5001/swagger
+# Backend will run on https://localhost:5128
 ```
 
-### Run Tests
+### Frontend Setup
 ```bash
-# Run all unit tests
-dotnet test
+# 1. Navigate to frontend directory
+cd LawyerConnect/FrontEnd
 
-# Run with detailed output
-dotnet test --logger "console;verbosity=detailed"
+# 2. Install dependencies
+npm install
+
+# 3. Start development server
+npm run dev
+
+# Frontend will run on http://localhost:5173
 ```
 
-## 📚 Documentation
+### Access the Application
+- **Frontend**: http://localhost:5173
+- **Backend API**: https://localhost:5128
+- **Swagger UI**: https://localhost:5128/swagger
 
-### Essential Guides
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - What was built in Phase 1 & 2
-- **[FRONTEND_INTEGRATION_GUIDE.md](FRONTEND_INTEGRATION_GUIDE.md)** - How to integrate frontend with backend
-- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment instructions
-- **[BACKEND_DOCUMENTATION.md](BACKEND_DOCUMENTATION.md)** - Complete API reference
-- **[CORE_FLOWS_DOCUMENTATION.md](CORE_FLOWS_DOCUMENTATION.md)** - Business workflows
+## 📚 Key Features
 
-### Additional Resources
-- **[UNIT_TESTING_COMPLETE.md](UNIT_TESTING_COMPLETE.md)** - Testing documentation
-- **[PROJECT_STUDY_GUIDE.md](PROJECT_STUDY_GUIDE.md)** - Learning resource
-- **[LawyerConnect_SRS.md](LawyerConnect_SRS.md)** - Requirements specification
-- **[LawyerConnect.http](LawyerConnect.http)** - API testing scenarios
+### For Clients
+- Browse and search verified lawyers by specialization
+- View lawyer profiles with ratings and reviews
+- Book consultations with instant confirmation
+- Secure payment processing
+- Real-time chat with lawyers
+- Leave reviews after consultations
+- Manage bookings and payment history
+
+### For Lawyers
+- Professional profile management
+- Set pricing for different services
+- Manage consultation bookings
+- Approve/decline booking requests
+- Chat with clients
+- View reviews and ratings
+- Track earnings
+
+### For Admins
+- Verify lawyer registrations
+- Manage users and lawyers
+- Monitor platform activity
+- View all bookings and payments
 
 ## 🏗️ Architecture
 
 ### Tech Stack
-- **Framework**: ASP.NET Core 8 Web API
-- **Database**: SQL Server with Entity Framework Core 8
-- **Authentication**: JWT Bearer tokens (HMAC SHA256)
-- **Authorization**: Role-based (User, Lawyer, Admin)
-- **Payments**: Stripe integration
-- **Testing**: xUnit, Moq, FluentAssertions
+
+**Backend**
+- ASP.NET Core 8 Web API
+- Entity Framework Core 8
+- SQL Server
+- JWT Bearer Authentication
+- Stripe Payment Integration
+
+**Frontend**
+- React 18 with TypeScript
+- Vite build tool
+- Tailwind CSS for styling
+- Framer Motion for animations
+- React Router for navigation
+- Context API for state management
 
 ### Project Structure
 ```
 LawyerConnect/
-├── Controllers/          # API endpoints (10 controllers)
-├── Services/            # Business logic (10 services)
-├── Repositories/        # Data access layer
-├── Models/              # Entity models (15+ models)
+├── Controllers/          # API endpoints
+├── Services/            # Business logic
+├── Repositories/        # Data access
+├── Models/              # Entity models
 ├── DTOs/                # Data transfer objects
 ├── Mappers/             # Entity-DTO conversions
 ├── Data/                # DbContext and migrations
 ├── Middlewares/         # Custom middleware
-├── LawyerConnect.Tests/ # Unit tests (123 tests)
-└── docs/                # Archived documentation
-```
+├── FrontEnd/            # React application
+│   ├── src/
+│   │   ├── components/  # Reusable components
+│   │   ├── pages/       # Page components
+│   │   ├── contexts/    # React contexts
+│   │   ├── services/    # API service layer
+│   │   └── types/       # TypeScript types
+│   └── public/          # Static assets
+└── LawyerConnect.Tests/ # Unit tests
 
-### Key Features
-- ✅ User & Lawyer registration with verification
-- ✅ JWT authentication & role-based authorization
-- ✅ Lawyer search with filters (specialization, rating, location)
-- ✅ Booking management with time slot conflict detection
-- ✅ Stripe payment processing with webhooks
-- ✅ Real-time chat system
-- ✅ Review & rating system
-- ✅ Notification system
-- ✅ Admin panel for lawyer verification
+```
 
 ## 🔧 Configuration
 
-### appsettings.json
+### Backend (appsettings.json)
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=LawyerConnect;Trusted_Connection=True;TrustServerCertificate=True"
+    "DefaultConnection": "Server=.;Database=LawyerConnectDB;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=false"
   },
   "Jwt": {
-    "Key": "your-secret-key-minimum-32-characters",
+    "Key": "LawyerConnect_SuperSecure_JWT_Secret_Key_2024_Minimum_32_Characters_Long_For_HMAC_SHA256",
     "Issuer": "LawyerConnect",
-    "Audience": "LawyerConnectUsers",
-    "ExpiryMinutes": 60
+    "Audience": "LawyerConnect",
+    "ExpiresMinutes": 30
   },
   "Stripe": {
-    "SecretKey": "sk_test_...",
-    "PublicKey": "pk_test_...",
-    "WebhookSecret": "whsec_...",
+    "SecretKey": "YOUR_STRIPE_SECRET_KEY_HERE",
+    "PublishableKey": "YOUR_STRIPE_PUBLISHABLE_KEY_HERE",
     "Currency": "usd"
   }
 }
 ```
 
-### Environment Variables (Alternative)
-```bash
-ConnectionStrings__DefaultConnection="Server=...;Database=LawyerConnect;..."
-Jwt__Key="your-secret-key"
-Stripe__SecretKey="sk_test_..."
-Stripe__PublicKey="pk_test_..."
+**Note**: Stripe keys are optional. The system will use simulated payments if real keys are not configured.
+
+### Frontend (.env)
+```env
+VITE_API_URL=http://localhost:5128/api
 ```
 
 ## 📡 API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register user
-- `POST /api/auth/register-lawyer` - Register lawyer
 - `POST /api/auth/login` - Login and get JWT token
-
-### Users
-- `GET /api/users/me` - Get current user profile
-- `PUT /api/users/{id}` - Update user profile
-- `GET /api/users` - Get all users (admin)
+- `GET /api/auth/me` - Get current user
 
 ### Lawyers
-- `GET /api/lawyers/search` - Search lawyers with filters
+- `GET /api/lawyers` - Get all lawyers (paginated)
 - `GET /api/lawyers/{id}` - Get lawyer profile
-- `PUT /api/lawyers/{id}/verify` - Verify lawyer (admin)
+- `GET /api/lawyers/{id}/pricing` - Get lawyer pricing
+- `POST /api/lawyers/register` - Register as lawyer
+- `GET /api/lawyers/me` - Get my lawyer profile
 
 ### Bookings
 - `POST /api/bookings` - Create booking
 - `GET /api/bookings/user` - Get user bookings
 - `GET /api/bookings/lawyer` - Get lawyer bookings
-- `POST /api/bookings/{id}/cancel` - Cancel booking
+- `PUT /api/bookings/{id}/status` - Update booking status
 
 ### Payments
-- `POST /api/payments/create-session` - Create Stripe payment session
-- `POST /api/payments/webhook` - Stripe webhook handler
-- `GET /api/payments/{sessionId}` - Get payment status
+- `POST /api/payments/create-session` - Create payment session
+- `POST /api/payments/confirm` - Confirm payment
+- `GET /api/payments/{id}` - Get payment details
+
+### Chat
+- `GET /api/chat/{bookingId}` - Get chat room
+- `POST /api/chat/{bookingId}/messages` - Send message
+- `GET /api/chat/{bookingId}/messages` - Get messages
 
 ### Reviews
 - `POST /api/reviews` - Create review
 - `GET /api/reviews/lawyer/{lawyerId}` - Get lawyer reviews
 
-### Chat
-- `GET /api/chat/room/{bookingId}` - Get chat room
-- `POST /api/chat/message` - Send message
-- `GET /api/chat/messages/{bookingId}` - Get messages
-
 ### Notifications
-- `GET /api/notifications` - Get user notifications
+- `GET /api/notifications` - Get notifications
 - `PUT /api/notifications/{id}/read` - Mark as read
 - `GET /api/notifications/unread-count` - Get unread count
 
-### Specializations
-- `GET /api/specializations` - Get all specializations
-- `POST /api/specializations` - Create specialization (admin)
-
 ### Admin
-- `GET /api/admin/users` - Get all users
 - `GET /api/admin/lawyers/pending` - Get pending lawyers
-- `POST /api/admin/lawyers/{id}/verify` - Verify lawyer
-- `POST /api/admin/lawyers/{id}/reject` - Reject lawyer
-
-## 🧪 Testing
-
-### Unit Tests (123 Tests)
-```bash
-# Run all tests
-dotnet test
-
-# Test coverage by service:
-# - NotificationService: 10 tests
-# - SpecializationService: 12 tests
-# - PricingService: 15 tests
-# - UserService: 14 tests
-# - LawyerService: 12 tests
-# - AdminService: 14 tests
-# - BookingService: 16 tests
-# - ReviewService: 12 tests
-# - ChatService: 11 tests
-# - PaymentService: 7 tests
-```
-
-### Manual API Testing
-Use the included `LawyerConnect.http` file with REST Client extension in VS Code:
-- 14 complete test scenarios
-- User registration and authentication
-- Lawyer workflows
-- Booking creation
-- Payment processing
-- Chat and reviews
+- `PUT /api/admin/lawyers/{id}/verify` - Verify lawyer
+- `PUT /api/admin/lawyers/{id}/reject` - Reject lawyer
 
 ## 🔒 Security
 
-- ✅ JWT token-based authentication
-- ✅ Role-based authorization (User, Lawyer, Admin)
-- ✅ BCrypt password hashing
-- ✅ Input validation on all endpoints
-- ✅ SQL injection protection (EF Core)
-- ✅ CORS configuration
-- ✅ HTTPS enforcement
+- JWT token-based authentication
+- Role-based authorization (User, Lawyer, Admin)
+- Password hashing with BCrypt
+- CORS configuration
+- HTTPS enforcement
+- Input validation
+- SQL injection protection (EF Core)
+- Rate limiting middleware
+
+## 🎨 Frontend Features
+
+- Responsive design (mobile, tablet, desktop)
+- Dark mode support
+- Smooth animations with Framer Motion
+- Real-time updates (polling for chat/notifications)
+- Form validation
+- Error handling with user feedback
+- Loading states
+- Optimistic UI updates
 
 ## 🚀 Deployment
 
-See **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** for detailed deployment instructions including:
-- Azure App Service
-- AWS Elastic Beanstalk
-- Docker containers
-- IIS (Windows Server)
+### Backend Deployment
+1. Publish the application: `dotnet publish -c Release`
+2. Deploy to Azure App Service, AWS, or IIS
+3. Configure connection strings and secrets
+4. Apply migrations: `dotnet ef database update`
+
+### Frontend Deployment
+1. Build for production: `npm run build`
+2. Deploy `dist` folder to:
+   - Vercel
+   - Netlify
+   - Azure Static Web Apps
+   - AWS S3 + CloudFront
+
+## 🧪 Testing
+
+### Run Backend Tests
+```bash
+cd LawyerConnect
+dotnet test
+```
+
+### Run Frontend (if tests exist)
+```bash
+cd LawyerConnect/FrontEnd
+npm test
+```
 
 ## 📊 Database Schema
 
 ### Core Tables
-- **Users** - User accounts and authentication
-- **Lawyers** - Lawyer profiles and verification
+- **Users** - User accounts
+- **Lawyers** - Lawyer profiles
 - **Specializations** - Legal specializations
-- **LawyerSpecializations** - Many-to-many relationship
-- **LawyerPricing** - Pricing configuration
+- **LawyerPricing** - Service pricing
 - **Bookings** - Consultation bookings
 - **PaymentSessions** - Payment tracking
-- **Reviews** - Lawyer reviews and ratings
-- **ChatRooms** - Chat room management
-- **ChatMessages** - Chat messages
+- **Reviews** - Ratings and reviews
+- **ChatRooms** - Chat rooms
+- **ChatMessages** - Messages
 - **Notifications** - User notifications
-- **InteractionTypes** - Consultation types
+- **InteractionTypes** - Service types
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests: `dotnet test`
+4. Run tests
 5. Submit a pull request
 
 ## 📝 License
 
 This project is licensed under the MIT License.
 
-## 📞 Support
-
-For questions or issues:
-- Check the documentation in the `docs/` folder
-- Review the API documentation: `BACKEND_DOCUMENTATION.md`
-- See integration guide: `FRONTEND_INTEGRATION_GUIDE.md`
-- Open an issue on GitHub
-
 ---
 
-**Built with ❤️ using ASP.NET Core 8**
+**Built with ❤️ using ASP.NET Core 8 and React 18**

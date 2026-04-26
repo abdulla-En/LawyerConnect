@@ -14,6 +14,7 @@ import LawyerProfile from './pages/LawyerProfile'
 import UserDashboard from './pages/UserDashboard'
 import LawyerDashboard from './pages/LawyerDashboard'
 import AccountPage from './pages/AccountPage'
+import AdminDashboard from './pages/AdminDashboard'
 
 function App() {
   const { isLoggedIn, user } = useAuth()
@@ -76,6 +77,12 @@ function App() {
               path="/account" 
               element={
                 isLoggedIn ? <AccountPage /> : <Navigate to="/" replace />
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                isLoggedIn && user?.role === 'Admin' ? <AdminDashboard /> : <Navigate to="/" replace />
               } 
             />
             <Route path="*" element={<Navigate to="/" replace />} />

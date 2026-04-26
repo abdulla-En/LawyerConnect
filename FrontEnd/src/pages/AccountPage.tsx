@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react'
-import { motion } from 'framer-motion'
-import { User, Mail, Phone, Award, Save, Pencil } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { User, Mail, Phone, Award, Save, Pencil, DollarSign, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api'
+import type { LawyerPricingDto, InteractionTypeDto, SpecializationDto } from '../types'
 
 export default function AccountPage() {
   const { user, updateUser } = useAuth()
@@ -16,6 +17,131 @@ export default function AccountPage() {
     phone: user?.phone || '',
     city: user?.city || ''
   })
+  
+  // Pricing states
+  const [lawyerId, setLawyerId] = useState<number | null>(null)
+  const [pricings, setPricings] = useState<LawyerPricingDto[]>([])
+  const [interactionTypes, setInteractionTypes] = useState<InteractionTypeDto[]>([])
+  const [specializations, setSpecializations] = useState<SpecializationDto[]>([])
+  const [lawyerSpecializationNames, setLawyerSpecializationNames] = useState<string[]>([])
+  const [isPricingLoading, setIsPricingLoading] = useState(false)
+  const [editingPricingKey, setEditingPricingKey] = useState<string | null>(null)
+  const [editingPricingData, setEditingPricingData] = useState<{ price: number; durationMinutes: number }>({
+    price: 0,
+    durationMinutes: 60
+  })
+  const [newPricing, setNewPricing] = useState<Partial<LawyerPricingDto>>({
+    price: 500,
+    durationMinutes: 60
+  })
+
+  useEffect(() => {
+    if (user?.role === 'Lawyer') {
+      loadPricingData()
+    }
+  }, [user])
+
+  const loadPricingData = async () => {
+    setIsPricingLoading(true)
+    try {
+      const profile = await apiService.getMyLawyerProfile()
+      setLawyerId(profile.id)
+      setLawyerSpecializationNames(profile.specializations || [])
+      
+      const [pricingData, typesData, specsData] = await Promise.all([
+        apiService.getLawyerPricing(profile.id),
+        apiService.getInteractionTypes(),
+        apiService.getSpecializations()
+      ])
+      
+      setPricings(pricingData)
+      setInteractionTypes(typesData)
+      setSpecializations(specsData)
+      
+      const allowedSpecs = specsData.filter(s => (profile.specializations || []).includes(s.name))
+      const specsForSelection = allowedSpecs.length > 0 ? allowedSpecs : specsData
+
+      if (typesData.length > 0 && specsForSelection.length > 0) {
+        setNewPricing(prev => ({
+          ...prev,
+          interactionTypeId: typesData[0].id,
+          specializationId: specsForSelection[0].id
+        }))
+      }
+    } catch (e) {
+      console.error('Failed to load pricing data', e)
+    } finally {
+      setIsPricingLoading(false)
+    }
+  }
+
+  const handleAddPricing = async () => {
+    if (!lawyerId || !newPricing.interactionTypeId || !newPricing.specializationId || !newPricing.price || !newPricing.durationMinutes) return
+    
+    try {
+      const dto: LawyerPricingDto = {
+        interactionTypeId: newPricing.interactionTypeId,
+        specializationId: newPricing.specializationId,
+        price: newPricing.price,
+        durationMinutes: newPricing.durationMinutes
+      }
+      await apiService.setLawyerPricing(lawyerId, dto)
+      await loadPricingData()
+    } catch (e) {
+      alert('Failed to add pricing. It might already exist.')
+    }
+  }
+
+  const allowedSpecializations = specializations.filter(s => lawyerSpecializationNames.includes(s.name))
+  const selectableSpecializations = allowedSpecializations.length > 0 ? allowedSpecializations : specializations
+
+  const handleDeletePricing = async (specId: number, intId: number) => {
+    if (!lawyerId) return
+    if (!confirm('Are you sure you want to delete this pricing option?')) return
+    
+    try {
+      await apiService.deleteLawyerPricing(lawyerId, specId, intId)
+      setPricings(prev => prev.filter(p => !(p.specializationId === specId && p.interactionTypeId === intId)))
+    } catch (e) {
+      alert('Failed to delete pricing.')
+    }
+  }
+
+  const handleStartEditPricing = (pricing: LawyerPricingDto) => {
+    setEditingPricingKey(`${pricing.specializationId}-${pricing.interactionTypeId}`)
+    setEditingPricingData({
+      price: pricing.price,
+      durationMinutes: pricing.durationMinutes
+    })
+  }
+
+  const handleCancelEditPricing = () => {
+    setEditingPricingKey(null)
+  }
+
+  const handleSaveEditPricing = async (specializationId: number, interactionTypeId: number) => {
+    if (!lawyerId) return
+
+    try {
+      await apiService.updateLawyerPricing(lawyerId, {
+        specializationId,
+        interactionTypeId,
+        price: editingPricingData.price,
+        durationMinutes: editingPricingData.durationMinutes
+      })
+
+      setPricings(prev =>
+        prev.map(p =>
+          p.specializationId === specializationId && p.interactionTypeId === interactionTypeId
+            ? { ...p, price: editingPricingData.price, durationMinutes: editingPricingData.durationMinutes }
+            : p
+        )
+      )
+      setEditingPricingKey(null)
+    } catch (e) {
+      alert('Failed to update pricing.')
+    }
+  }
 
   const handleSave = () => {
     // TODO: Implement update user profile API call
@@ -259,6 +385,168 @@ export default function AccountPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Pricing Settings for Lawyers */}
+        <AnimatePresence>
+          {user?.role === 'Lawyer' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white dark:bg-dark-800 rounded-2xl shadow-xl p-8 mt-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-primary-500" />
+                  Pricing & Services
+                </h3>
+              </div>
+
+              {isPricingLoading ? (
+                <div className="text-center py-6 text-gray-500 dark:text-gray-400">Loading pricing configuration...</div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Active Pricings List */}
+                  {pricings.length === 0 ? (
+                    <div className="text-center py-6 bg-gray-50 dark:bg-dark-900 rounded-xl text-gray-500 text-sm">
+                      No pricing configurations found. Add one below to accept bookings.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {pricings.map((p) => {
+                        const spec = specializations.find(s => s.id === p.specializationId)
+                        const interaction = interactionTypes.find(i => i.id === p.interactionTypeId)
+                        const pricingKey = `${p.specializationId}-${p.interactionTypeId}`
+                        const isEditingPricing = editingPricingKey === pricingKey
+                        return (
+                          <div key={pricingKey} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl">
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-white">{spec?.name || 'Unknown'}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{interaction?.name || 'Unknown'}</p>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              {isEditingPricing ? (
+                                <>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    step="50"
+                                    value={editingPricingData.price}
+                                    onChange={(e) =>
+                                      setEditingPricingData(prev => ({
+                                        ...prev,
+                                        price: parseFloat(e.target.value) || 0
+                                      }))
+                                    }
+                                    className="w-24 text-sm py-1.5 px-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
+                                  />
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    step="15"
+                                    value={editingPricingData.durationMinutes}
+                                    onChange={(e) =>
+                                      setEditingPricingData(prev => ({
+                                        ...prev,
+                                        durationMinutes: parseInt(e.target.value) || 0
+                                      }))
+                                    }
+                                    className="w-20 text-sm py-1.5 px-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
+                                    title="Duration in minutes"
+                                  />
+                                  <button
+                                    onClick={() => handleSaveEditPricing(p.specializationId, p.interactionTypeId)}
+                                    className="px-2 py-1.5 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 rounded-lg"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEditPricing}
+                                    className="px-2 py-1.5 text-xs font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 dark:bg-dark-700 dark:text-gray-300 rounded-lg"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="font-bold text-primary-600 dark:text-primary-400">{p.price} EGP • {p.durationMinutes} mins</span>
+                                  <button
+                                    onClick={() => handleStartEditPricing(p)}
+                                    className="p-1.5 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                                    title="Edit pricing"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={() => handleDeletePricing(p.specializationId, p.interactionTypeId)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Add New Pricing Form */}
+                  <div className="p-5 border-2 border-dashed border-gray-200 dark:border-dark-700 rounded-xl">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                      <Plus className="w-4 h-4" /> Add New Service Pricing
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 block mb-1">Specialization</label>
+                        <select 
+                          value={newPricing.specializationId || ''} 
+                          onChange={e => setNewPricing({...newPricing, specializationId: parseInt(e.target.value)})}
+                          className="w-full text-sm py-2 px-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
+                        >
+                          {selectableSpecializations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 block mb-1">Interaction Type</label>
+                        <select 
+                          value={newPricing.interactionTypeId || ''} 
+                          onChange={e => setNewPricing({...newPricing, interactionTypeId: parseInt(e.target.value)})}
+                          className="w-full text-sm py-2 px-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
+                        >
+                          {interactionTypes.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 block mb-1">Price (EGP)</label>
+                        <input 
+                          type="number" min="0" step="50"
+                          value={newPricing.price || ''}
+                          onChange={e => setNewPricing({...newPricing, price: parseFloat(e.target.value)})}
+                          className="w-full text-sm py-2 px-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                         <label className="text-xs font-semibold text-gray-500 block mb-1">Action</label>
+                         <button 
+                          onClick={handleAddPricing}
+                          disabled={selectableSpecializations.length === 0 || interactionTypes.length === 0}
+                          className="w-full py-2 bg-primary-100 hover:bg-primary-200 dark:bg-primary-900/30 dark:hover:bg-primary-900/50 text-primary-700 dark:text-primary-400 font-medium rounded-lg transition-colors text-sm"
+                         >
+                           Add Service
+                         </button>
+                      </div>
+                    </div>
+                    {allowedSpecializations.length === 0 && specializations.length > 0 && (
+                      <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+                        No mapped specialization was found for this lawyer profile. Showing all specializations as fallback.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

@@ -2,6 +2,7 @@ using LawyerConnect.DTOs;
 using LawyerConnect.Data;
 using LawyerConnect.Mappers;
 using LawyerConnect.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace LawyerConnect.Services
 {
@@ -99,6 +100,24 @@ namespace LawyerConnect.Services
                     throw new ArgumentException($"Specialization with ID {dto.SpecializationId} not found");
                 }
 
+                // Validate interaction type exists
+                var interactionTypeExists = await _context.InteractionTypes
+                    .AnyAsync(it => it.Id == dto.InteractionTypeId);
+                if (!interactionTypeExists)
+                {
+                    _logger.LogWarning($"Interaction type {dto.InteractionTypeId} not found");
+                    throw new ArgumentException($"Interaction type with ID {dto.InteractionTypeId} not found");
+                }
+
+                // Validate lawyer has this specialization
+                var lawyerHasSpecialization = await _context.LawyerSpecializations
+                    .AnyAsync(ls => ls.LawyerId == lawyerId && ls.SpecializationId == dto.SpecializationId);
+                if (!lawyerHasSpecialization)
+                {
+                    _logger.LogWarning($"Lawyer {lawyerId} does not have specialization {dto.SpecializationId}");
+                    throw new InvalidOperationException("Cannot set pricing for a specialization not assigned to this lawyer");
+                }
+
                 // Validate price
                 if (dto.Price <= 0)
                 {
@@ -130,6 +149,12 @@ namespace LawyerConnect.Services
 
                 _logger.LogInformation($"Pricing set successfully for lawyer {lawyerId}");
             }
+            catch (DbUpdateException ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Database constraint violation while setting pricing for lawyer {lawyerId}");
+                throw new InvalidOperationException("Unable to save pricing due to invalid related data. Please verify specialization and interaction type.");
+            }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
@@ -144,6 +169,15 @@ namespace LawyerConnect.Services
             try
             {
                 _logger.LogInformation($"Updating pricing for lawyer {lawyerId}");
+
+                // Validate interaction type exists
+                var interactionTypeExists = await _context.InteractionTypes
+                    .AnyAsync(it => it.Id == dto.InteractionTypeId);
+                if (!interactionTypeExists)
+                {
+                    _logger.LogWarning($"Interaction type {dto.InteractionTypeId} not found");
+                    throw new ArgumentException($"Interaction type with ID {dto.InteractionTypeId} not found");
+                }
 
                 var pricing = await _pricingRepository.GetPricingAsync(
                     lawyerId, dto.SpecializationId, dto.InteractionTypeId);
@@ -174,6 +208,12 @@ namespace LawyerConnect.Services
                 await transaction.CommitAsync();
 
                 _logger.LogInformation($"Pricing updated successfully for lawyer {lawyerId}");
+            }
+            catch (DbUpdateException ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, $"Database constraint violation while updating pricing for lawyer {lawyerId}");
+                throw new InvalidOperationException("Unable to update pricing due to invalid related data.");
             }
             catch (Exception ex)
             {

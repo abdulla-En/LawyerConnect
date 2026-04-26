@@ -23,7 +23,7 @@ namespace LawyerConnect.Mappers
                 Id = message.Id,
                 ChatRoomId = message.ChatRoomId,
                 SenderId = message.SenderId,
-                SenderName = message.Sender?.FullName,
+                SenderName = message.Sender?.FullName ?? string.Empty,
                 Message = message.Message,
                 SentAt = message.SentAt
             };

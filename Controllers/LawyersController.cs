@@ -125,6 +125,16 @@ namespace LawyerConnect.Controllers
                 await _pricingService.SetPricingAsync(lawyerId, dto);
                 return CreatedAtAction(nameof(GetPricing), new { lawyerId, specializationId = dto.SpecializationId, interactionTypeId = dto.InteractionTypeId }, dto);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid pricing request");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Pricing operation rejected");
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error setting pricing");
@@ -189,6 +199,16 @@ namespace LawyerConnect.Controllers
 
                 await _pricingService.UpdatePricingAsync(lawyerId, dto);
                 return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid pricing update request");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Pricing update rejected");
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {

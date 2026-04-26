@@ -19,6 +19,9 @@ namespace LawyerConnect.DTOs
 
         [Required]
         public List<int> SpecializationIds { get; set; } = new List<int>();
+
+        [Range(0, 100000, ErrorMessage = "Base hourly rate must be valid.")]
+        public decimal BaseHourlyRate { get; set; }
     }
 }
 

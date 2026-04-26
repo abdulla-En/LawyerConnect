@@ -89,6 +89,25 @@ namespace LawyerConnect.Services
                         });
                     }
                     await _lawyerRepository.UpdateAsync(lawyer);
+
+                    // Generate pricing matrix
+                    var interactionTypes = _context.InteractionTypes.ToList();
+                    foreach (var specId in dto.SpecializationIds)
+                    {
+                        foreach (var interactionType in interactionTypes)
+                        {
+                            var pricing = new LawyerPricing
+                            {
+                                LawyerId = lawyer.Id,
+                                SpecializationId = specId,
+                                InteractionTypeId = interactionType.Id,
+                                Price = dto.BaseHourlyRate,
+                                DurationMinutes = 60
+                            };
+                            _context.LawyerPricings.Add(pricing);
+                        }
+                    }
+                    await _context.SaveChangesAsync();
                 }
                 
                 await transaction.CommitAsync();

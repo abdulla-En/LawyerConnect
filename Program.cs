@@ -14,7 +14,12 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add Basic services into DIcontainer.
-builder.Services.AddControllers(); // to map controllers 
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    }); // to map controllers 
 
 builder.Services.AddEndpointsApiExplorer(); // to access end_point by swagger  
 builder.Services.AddSwaggerGen(); // to add swagger service 

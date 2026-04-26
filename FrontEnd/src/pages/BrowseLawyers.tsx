@@ -1,34 +1,38 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Briefcase, DollarSign, ChevronRight } from 'lucide-react'
+import { Search, Briefcase, Star, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiService } from '../services/api'
-import type { LawyerResponseDto } from '../types'
+import type { LawyerResponseDto, SpecializationDto } from '../types'
 
 export default function BrowseLawyers() {
   const navigate = useNavigate()
   const [lawyers, setLawyers] = useState<LawyerResponseDto[]>([])
   const [filteredLawyers, setFilteredLawyers] = useState<LawyerResponseDto[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSpecialization, setSelectedSpecialization] = useState('All')
-  const [maxRate, setMaxRate] = useState(100000)
-
-  const specializations = ['All', 'Criminal Law', 'Corporate Law', 'Family Law', 'Real Estate', 'Immigration', 'Tax Law','Employment Law']
+  const [specializations, setSpecializations] = useState<string[]>(['All'])
 
   useEffect(() => {
-    loadLawyers()
-  }, [])
+    // Only load if we haven't loaded yet
+    if (!hasLoaded) {
+      loadLawyers()
+      loadSpecializations()
+    }
+  }, [hasLoaded])
 
   useEffect(() => {
     filterLawyers()
-  }, [lawyers, searchTerm, selectedSpecialization, maxRate])
+  }, [lawyers, searchTerm, selectedSpecialization])
 
   const loadLawyers = async () => {
     try {
       setIsLoading(true)
-      const data = await apiService.getLawyers()
+      const data = await apiService.getLawyers(1, 100)
       setLawyers(data)
+      setHasLoaded(true)
     } catch (error) {
       console.error('Failed to load lawyers:', error)
     } finally {
@@ -36,25 +40,31 @@ export default function BrowseLawyers() {
     }
   }
 
+  const loadSpecializations = async () => {
+    try {
+      const data = await apiService.getSpecializations()
+      setSpecializations(['All', ...data.map((s: SpecializationDto) => s.name)])
+    } catch {
+      setSpecializations(['All', 'Criminal Law', 'Corporate Law', 'Family Law', 'Real Estate', 'Immigration', 'Tax Law', 'Employment Law'])
+    }
+  }
+
   const filterLawyers = () => {
     let filtered = lawyers
 
     if (searchTerm) {
-      filtered = filtered.filter(lawyer => 
-        lawyer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lawyer.specialization.toLowerCase().includes(searchTerm.toLowerCase())
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(lawyer =>
+        lawyer.fullName.toLowerCase().includes(term) ||
+        (lawyer.specializations || []).some(s => s.toLowerCase().includes(term))
       )
     }
 
     if (selectedSpecialization !== 'All') {
-      filtered = filtered.filter(lawyer => 
-        lawyer.specialization === selectedSpecialization
+      filtered = filtered.filter(lawyer =>
+        (lawyer.specializations || []).some(s => s === selectedSpecialization)
       )
     }
-
-    filtered = filtered.filter(lawyer => 
-      lawyer.price <= maxRate
-    )
 
     setFilteredLawyers(filtered)
   }
@@ -95,44 +105,31 @@ export default function BrowseLawyers() {
             />
           </div>
 
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Specialization
-              </label>
-              <select
-                value={selectedSpecialization}
-                onChange={(e) => setSelectedSpecialization(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white"
-              >
-                {specializations.map(spec => (
-                  <option key={spec} value={spec}>{spec}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Max Hourly Rate (EGP)
-              </label>
-              <select
-                value={maxRate}
-                onChange={(e) => setMaxRate(Number(e.target.value))}
-                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-dark-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white"
-              >
-                <option value={100000}>Any Rate</option>
-                <option value={500}>Up to 500 EGP</option>
-                <option value={1000}>Up to 1,000 EGP</option>
-                <option value={2000}>Up to 2,000 EGP</option>
-                <option value={5000}>Up to 5,000 EGP</option>
-              </select>
+          {/* Specialization Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Specialization
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {specializations.map(spec => (
+                <button
+                  key={spec}
+                  onClick={() => setSelectedSpecialization(spec)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    selectedSpecialization === spec
+                      ? 'bg-primary-500 text-white shadow-lg'
+                      : 'bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                  }`}
+                >
+                  {spec}
+                </button>
+              ))}
             </div>
           </div>
         </motion.div>
 
         {/* Results */}
-        {isLoading ? (
+        {isLoading && !hasLoaded ? (
           <div className="text-center py-12">
             <div className="inline-block w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">Loading lawyers...</p>
@@ -158,30 +155,38 @@ export default function BrowseLawyers() {
                     <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center text-white text-2xl font-bold">
                       {lawyer.fullName?.[0] || 'L'}
                     </div>
-                    {lawyer.verified && (
-                      <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
-                        Verified
-                      </span>
-                    )}
+                    <div className="flex flex-col items-end gap-2">
+                      {lawyer.isVerified && (
+                        <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
+                          Verified
+                        </span>
+                      )}
+                      {lawyer.averageRating > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{lawyer.averageRating.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Name and Specialization */}
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                     {lawyer.fullName}
                   </h3>
-                  <p className="text-primary-600 dark:text-primary-400 font-medium mb-4">
-                    {lawyer.specialization}
-                  </p>
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {(lawyer.specializations || []).map((spec, i) => (
+                      <span key={i} className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg font-medium">
+                        {spec}
+                      </span>
+                    ))}
+                  </div>
 
                   {/* Stats */}
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <Briefcase className="w-4 h-4" />
                       <span>{lawyer.experienceYears} years experience</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <DollarSign className="w-4 h-4" />
-                      <span>{lawyer.price} EGP/hour</span>
                     </div>
                   </div>
 

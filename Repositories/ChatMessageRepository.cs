@@ -31,10 +31,15 @@ namespace LawyerConnect.Repositories
 
         public async Task<List<ChatMessage>> GetMessagesByBookingIdAsync(int bookingId, int page = 1, int limit = 50)
         {
+            var chatRoom = await _context.ChatRooms
+                .FirstOrDefaultAsync(cr => cr.BookingId == bookingId);
+
+            if (chatRoom == null)
+                return new List<ChatMessage>();
+
             return await _context.ChatMessages
                 .Include(cm => cm.Sender)
-                .Include(cm => cm.ChatRoom)
-                .Where(cm => cm.ChatRoom.BookingId == bookingId)
+                .Where(cm => cm.ChatRoomId == chatRoom.Id)
                 .OrderBy(cm => cm.SentAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)

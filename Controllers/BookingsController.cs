@@ -11,11 +11,13 @@ namespace LawyerConnect.Controllers
     public class BookingsController : ControllerBase
     {
         private readonly IBookingService _bookingService;
+        private readonly ILawyerService _lawyerService;
         private readonly ILogger<BookingsController> _logger;
 
-        public BookingsController(IBookingService bookingService, ILogger<BookingsController> logger)
+        public BookingsController(IBookingService bookingService, ILawyerService lawyerService, ILogger<BookingsController> logger)
         {
             _bookingService = bookingService;
+            _lawyerService = lawyerService;
             _logger = logger;
         }
 
@@ -88,9 +90,12 @@ namespace LawyerConnect.Controllers
                 if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                     return Unauthorized();
 
-                // Get lawyer ID from user
-                // In a real system, you would get the lawyer ID from the user's lawyer profile
-                var bookings = await _bookingService.GetLawyerBookingsAsync(userId, page, limit);
+                var lawyerProfile = await _lawyerService.GetByUserIdAsync(userId);
+                
+                if (lawyerProfile == null)
+                    return BadRequest("User is not associated with a lawyer profile.");
+
+                var bookings = await _bookingService.GetLawyerBookingsAsync(lawyerProfile.Id, page, limit);
                 return Ok(bookings);
             }
             catch (Exception ex)
