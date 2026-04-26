@@ -19,6 +19,14 @@ namespace LawyerConnect.Middlewares
 
         public async Task InvokeAsync(HttpContext context)
         {
+            // Exempt chat endpoints from rate limiting (they need frequent polling)
+            var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
+            if (path.Contains("/api/chat"))
+            {
+                await _next(context);
+                return;
+            }
+
             var key = $"{context.Connection.RemoteIpAddress}-{context.Request.Path.Value}".ToLowerInvariant();
             var now = DateTime.UtcNow;
 
