@@ -139,6 +139,67 @@ namespace LawyerConnect.Services
             }
         }
 
+        public async Task<List<ReviewResponseDto>> GetFeaturedReviewsAsync(int limit = 3)
+        {
+            try
+            {
+                _logger.LogInformation($"Retrieving top {limit} featured reviews");
+
+                // Get all reviews with high ratings (4-5 stars) that have comments
+                var allReviews = await _context.Reviews
+                    .Include(r => r.User)
+                    .Include(r => r.Lawyer)
+                        .ThenInclude(l => l.User)
+                    .Where(r => r.Rating >= 4 && !string.IsNullOrEmpty(r.Comment))
+                    .OrderByDescending(r => r.Rating)
+                    .ThenByDescending(r => r.CreatedAt)
+                    .Take(limit * 3) // Get more to have variety
+                    .ToListAsync();
+
+                if (!allReviews.Any())
+                {
+                    _logger.LogInformation("No featured reviews found");
+                    return new List<ReviewResponseDto>();
+                }
+
+                // Select diverse reviews (different lawyers if possible)
+                var featured = new List<Review>();
+                var usedLawyerIds = new HashSet<int>();
+
+                // First pass: Get one review per lawyer
+                foreach (var review in allReviews)
+                {
+                    if (featured.Count >= limit) break;
+                    if (!usedLawyerIds.Contains(review.LawyerId))
+                    {
+                        featured.Add(review);
+                        usedLawyerIds.Add(review.LawyerId);
+                    }
+                }
+
+                // Second pass: Fill remaining slots if needed
+                if (featured.Count < limit)
+                {
+                    foreach (var review in allReviews)
+                    {
+                        if (featured.Count >= limit) break;
+                        if (!featured.Contains(review))
+                        {
+                            featured.Add(review);
+                        }
+                    }
+                }
+
+                _logger.LogInformation($"Retrieved {featured.Count} featured reviews");
+                return featured.Select(r => r.ToReviewResponseDto()).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve featured reviews");
+                throw;
+            }
+        }
+
         public async Task<decimal> GetLawyerAverageRatingAsync(int lawyerId)
         {
             try

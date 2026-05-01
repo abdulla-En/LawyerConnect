@@ -224,7 +224,7 @@ namespace LawyerConnect.Controllers
                 // Get current refresh token from cookie
                 Request.Cookies.TryGetValue("refreshToken", out var refreshToken);
 
-                await _authService.LogoutAsync(userId, refreshToken, logoutAllDevices);
+                await _authService.LogoutAsync(userId, refreshToken ?? string.Empty, logoutAllDevices);
 
                 // Clear the refresh token cookie
                 Response.Cookies.Delete("refreshToken");

@@ -15,6 +15,9 @@ import UserDashboard from './pages/UserDashboard'
 import LawyerDashboard from './pages/LawyerDashboard'
 import AccountPage from './pages/AccountPage'
 import AdminDashboard from './pages/AdminDashboard'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
+import CookiePolicy from './pages/CookiePolicy'
 
 function App() {
   const { isLoggedIn, user } = useAuth()
@@ -63,6 +66,9 @@ function App() {
             <Route path="/" element={<LandingPage onGetStarted={() => setShowSignup(true)} />} />
             <Route path="/lawyers" element={<BrowseLawyers />} />
             <Route path="/lawyer/:id" element={<LawyerProfile />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route 
               path="/dashboard" 
               element={

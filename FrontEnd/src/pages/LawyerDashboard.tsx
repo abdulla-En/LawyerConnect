@@ -39,7 +39,24 @@ export default function LawyerDashboard() {
     try {
       switch (tab) {
         case 'appointments':
-          setBookings(await apiService.getLawyerBookings())
+          // Check cache first (1 minute TTL)
+          const cachedBookings = sessionStorage.getItem('lawyer_bookings_cache')
+          const cacheTimestamp = sessionStorage.getItem('lawyer_bookings_cache_timestamp')
+          const CACHE_TTL = 60 * 1000 // 1 minute
+          
+          if (cachedBookings && cacheTimestamp) {
+            const age = Date.now() - parseInt(cacheTimestamp)
+            if (age < CACHE_TTL) {
+              setBookings(JSON.parse(cachedBookings))
+              setIsLoading(false)
+              return
+            }
+          }
+          
+          const bookingsData = await apiService.getLawyerBookings()
+          setBookings(bookingsData)
+          sessionStorage.setItem('lawyer_bookings_cache', JSON.stringify(bookingsData))
+          sessionStorage.setItem('lawyer_bookings_cache_timestamp', Date.now().toString())
           break
         case 'reviews':
           if (lawyerProfile?.id) {
@@ -58,6 +75,11 @@ export default function LawyerDashboard() {
     try {
       setActionError('')
       await apiService.updateBookingStatus(id, status)
+      
+      // Clear cache after status update
+      sessionStorage.removeItem('lawyer_bookings_cache')
+      sessionStorage.removeItem('lawyer_bookings_cache_timestamp')
+      
       await loadTabData('appointments')
     } catch (error) {
       console.error('Failed to update booking status:', error)

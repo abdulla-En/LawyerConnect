@@ -495,14 +495,15 @@ export default function AccountPage() {
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
                       <Plus className="w-4 h-4" /> Add New Service Pricing
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
                       <div>
                         <label className="text-xs font-semibold text-gray-500 block mb-1">Specialization</label>
                         <select 
                           value={newPricing.specializationId || ''} 
-                          onChange={e => setNewPricing({...newPricing, specializationId: parseInt(e.target.value)})}
+                          onChange={e => setNewPricing({...newPricing, specializationId: Number(e.target.value)})}
                           className="w-full text-sm py-2 px-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
                         >
+                          <option value="" disabled>Select specialization</option>
                           {selectableSpecializations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                       </div>
@@ -510,9 +511,10 @@ export default function AccountPage() {
                         <label className="text-xs font-semibold text-gray-500 block mb-1">Interaction Type</label>
                         <select 
                           value={newPricing.interactionTypeId || ''} 
-                          onChange={e => setNewPricing({...newPricing, interactionTypeId: parseInt(e.target.value)})}
+                          onChange={e => setNewPricing({...newPricing, interactionTypeId: Number(e.target.value)})}
                           className="w-full text-sm py-2 px-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
                         >
+                          <option value="" disabled>Select interaction</option>
                           {interactionTypes.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                         </select>
                       </div>
@@ -521,7 +523,16 @@ export default function AccountPage() {
                         <input 
                           type="number" min="0" step="50"
                           value={newPricing.price || ''}
-                          onChange={e => setNewPricing({...newPricing, price: parseFloat(e.target.value)})}
+                          onChange={e => setNewPricing({...newPricing, price: Number(e.target.value)})}
+                          className="w-full text-sm py-2 px-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 block mb-1">Duration (mins)</label>
+                        <input 
+                          type="number" min="15" step="15"
+                          value={newPricing.durationMinutes || ''}
+                          onChange={e => setNewPricing({...newPricing, durationMinutes: Number(e.target.value)})}
                           className="w-full text-sm py-2 px-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg outline-none text-gray-900 dark:text-white"
                         />
                       </div>
@@ -530,7 +541,7 @@ export default function AccountPage() {
                          <button 
                           onClick={handleAddPricing}
                           disabled={selectableSpecializations.length === 0 || interactionTypes.length === 0}
-                          className="w-full py-2 bg-primary-100 hover:bg-primary-200 dark:bg-primary-900/30 dark:hover:bg-primary-900/50 text-primary-700 dark:text-primary-400 font-medium rounded-lg transition-colors text-sm"
+                          className="w-full h-[38px] bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 disabled:dark:bg-dark-600 text-white font-semibold rounded-lg transition-colors text-sm"
                          >
                            Add Service
                          </button>

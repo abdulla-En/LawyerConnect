@@ -77,7 +77,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"fullName\": \"Admin User\",\n  \"email\": \"admin@lawyerconnect.com\",\n  \"password\": \"AdminPass123!\",\n  \"phone\": \"+1234567892\",\n  \"city\": \"Washington DC\",\n  \"role\": \"Admin\",\n  \"adminSecret\": \"LawyerConnect_Admin_Registration_Secret_2024\"\n}"
+							"raw": "{\n  \"fullName\": \"Admin User\",\n  \"email\": \"admin@lawyerconnect.com\",\n  \"password\": \"AdminPass123!\",\n  \"phone\": \"+1234567892\",\n  \"city\": \"Washington DC\",\n  \"role\": \"Admin\",\n  \"adminSecret\": \"LawyerConnect_Admin_Registration_Secret_2026\"\n}"
 						},
 						"url": {
 							"raw": "{{BaseUrl}}/api/auth/register",

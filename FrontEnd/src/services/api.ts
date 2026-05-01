@@ -1,7 +1,7 @@
 import type {
   AuthResponseDto,
   LoginDto,
-  UserRegisterDto,
+  RegisterRequestDto,
   LawyerRegisterDto,
   LawyerResponseDto,
   BookingDto,
@@ -20,6 +20,13 @@ import type {
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5128/api';
+
+// Request deduplication cache for GET requests
+const pendingRequests = new Map<string, Promise<any>>();
+
+// Static data cache (specializations, interaction types)
+const staticCache = new Map<string, { data: any; timestamp: number }>();
+const STATIC_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 class ApiService {
   private baseUrl: string;
@@ -50,46 +57,102 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const method = options.method || 'GET';
+    const cacheKey = `${method}:${url}`;
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: this.getHeaders(),
-      });
-
-      if (!response.ok) {
-        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-        
-        try {
-          const errorData = await response.json();
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (errorData.title) {
-            errorMessage = errorData.title;
-          } else if (typeof errorData === 'string') {
-            errorMessage = errorData;
-          }
-        } catch {
-          // If JSON parsing fails, use the default error message
+    // Request deduplication for GET requests only
+    if (method === 'GET') {
+      // Check static cache first
+      if (endpoint.includes('/specializations') || endpoint.includes('/interactiontypes')) {
+        const cached = staticCache.get(endpoint);
+        if (cached && Date.now() - cached.timestamp < STATIC_CACHE_TTL) {
+          return cached.data as T;
         }
-        
-        throw new Error(errorMessage);
       }
 
-      if (response.status === 204) {
-        return {} as T;
+      // Check if request is already pending
+      if (pendingRequests.has(cacheKey)) {
+        return pendingRequests.get(cacheKey) as Promise<T>;
       }
-
-      return await response.json() as T;
-    } catch (error) {
-      console.error(`API Error [${endpoint}]:`, error);
-      throw error;
     }
+
+    const requestPromise = (async () => {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: this.getHeaders(),
+        });
+
+        if (!response.ok) {
+          let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+          
+          try {
+            const errorData = await response.json();
+            if (errorData.errors && Array.isArray(errorData.errors)) {
+              // Handle validation errors array
+              errorMessage = errorData.errors.join(', ');
+            } else if (errorData.errors && typeof errorData.errors === 'object') {
+              // Handle ASP.NET validation errors object: { field: [msg1, msg2] }
+              const validationMessages = Object.values(errorData.errors)
+                .flat()
+                .filter((msg): msg is string => typeof msg === 'string');
+              if (validationMessages.length > 0) {
+                errorMessage = validationMessages.join(', ');
+              }
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (errorData.title) {
+              errorMessage = errorData.title;
+            } else if (typeof errorData === 'string') {
+              errorMessage = errorData;
+            }
+          } catch {
+            // Fallback for plain text error bodies
+            try {
+              const textError = await response.text();
+              if (textError) errorMessage = textError;
+            } catch {
+              // Keep default error message
+            }
+          }
+          
+          throw new Error(errorMessage);
+        }
+
+        if (response.status === 204) {
+          return {} as T;
+        }
+
+        const data = await response.json() as T;
+
+        // Cache static data
+        if (method === 'GET' && (endpoint.includes('/specializations') || endpoint.includes('/interactiontypes'))) {
+          staticCache.set(endpoint, { data, timestamp: Date.now() });
+        }
+
+        return data;
+      } catch (error) {
+        console.error(`API Error [${endpoint}]:`, error);
+        throw error;
+      } finally {
+        // Remove from pending requests
+        if (method === 'GET') {
+          pendingRequests.delete(cacheKey);
+        }
+      }
+    })();
+
+    // Store pending GET request
+    if (method === 'GET') {
+      pendingRequests.set(cacheKey, requestPromise);
+    }
+
+    return requestPromise;
   }
 
   // ==================== AUTH ====================
 
-  async registerUser(data: UserRegisterDto): Promise<AuthResponseDto> {
+  async registerUser(data: RegisterRequestDto): Promise<AuthResponseDto> {
     return this.request<AuthResponseDto>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -121,6 +184,13 @@ class ApiService {
   async getLawyers(page: number = 1, limit: number = 10): Promise<LawyerResponseDto[]> {
     return this.request<LawyerResponseDto[]>(
       `/lawyers?page=${page}&limit=${limit}`,
+      { method: 'GET' }
+    );
+  }
+
+  async getFeaturedLawyers(limit: number = 3): Promise<LawyerResponseDto[]> {
+    return this.request<LawyerResponseDto[]>(
+      `/lawyers/featured?limit=${limit}`,
       { method: 'GET' }
     );
   }
@@ -234,6 +304,12 @@ class ApiService {
 
   async getLawyerRating(lawyerId: number): Promise<{ averageRating: number }> {
     return this.request<{ averageRating: number }>(`/reviews/lawyer/${lawyerId}/rating`, {
+      method: 'GET',
+    });
+  }
+
+  async getFeaturedReviews(limit: number = 3): Promise<ReviewResponseDto[]> {
+    return this.request<ReviewResponseDto[]>(`/reviews/featured?limit=${limit}`, {
       method: 'GET',
     });
   }
@@ -397,6 +473,23 @@ class ApiService {
     return this.request<void>('/users/remove-photo', {
       method: 'DELETE',
     });
+  }
+
+  // ==================== CACHE MANAGEMENT ====================
+
+  clearStaticCache(): void {
+    staticCache.clear();
+  }
+
+  clearAllCaches(): void {
+    staticCache.clear();
+    pendingRequests.clear();
+    sessionStorage.removeItem('lawyers_cache');
+    sessionStorage.removeItem('lawyers_cache_timestamp');
+    sessionStorage.removeItem('user_bookings_cache');
+    sessionStorage.removeItem('user_bookings_cache_timestamp');
+    sessionStorage.removeItem('lawyer_bookings_cache');
+    sessionStorage.removeItem('lawyer_bookings_cache_timestamp');
   }
 }
 

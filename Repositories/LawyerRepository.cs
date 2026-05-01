@@ -14,16 +14,38 @@ namespace LawyerConnect.Repositories
         public LawyerRepository(LawyerConnectDbContext context) => _context = context;
 
         public async Task<Lawyer?> GetByIdAsync(int id) =>
-            await _context.Lawyers.Include(l => l.User).FirstOrDefaultAsync(l => l.Id == id);
+            await _context.Lawyers
+                .Include(l => l.User)
+                .Include(l => l.Specializations!)
+                    .ThenInclude(ls => ls.Specialization)
+                .Include(l => l.Reviews)
+                .FirstOrDefaultAsync(l => l.Id == id);
 
         public async Task<Lawyer?> GetByUserIdAsync(int userId) =>
-            await _context.Lawyers.Include(l => l.User).FirstOrDefaultAsync(l => l.UserId == userId);
+            await _context.Lawyers
+                .Include(l => l.User)
+                .Include(l => l.Specializations!)
+                    .ThenInclude(ls => ls.Specialization)
+                .Include(l => l.Reviews)
+                .FirstOrDefaultAsync(l => l.UserId == userId);
 
         public async Task<IEnumerable<Lawyer>> GetPagedAsync(int page, int limit) =>
-            await _context.Lawyers.Include(l => l.User)
+            await _context.Lawyers
+                .Include(l => l.User)
+                .Include(l => l.Specializations!)
+                    .ThenInclude(ls => ls.Specialization)
+                .Include(l => l.Reviews)
                 .OrderBy(l => l.Id)
                 .Skip((page - 1) * limit)
                 .Take(limit)
+                .ToListAsync();
+
+        public async Task<List<Lawyer>> GetAllAsync() =>
+            await _context.Lawyers
+                .Include(l => l.User)
+                .Include(l => l.Specializations!)
+                    .ThenInclude(ls => ls.Specialization)
+                .Include(l => l.Reviews)
                 .ToListAsync();
 
         public async Task AddAsync(Lawyer lawyer)

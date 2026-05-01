@@ -18,6 +18,7 @@ namespace LawyerConnect.DTOs
         public decimal Longitude { get; set; }
 
         [Required]
+        [MinLength(1, ErrorMessage = "At least one specialization must be selected.")]
         public List<int> SpecializationIds { get; set; } = new List<int>();
 
         [Range(0, 100000, ErrorMessage = "Base hourly rate must be valid.")]

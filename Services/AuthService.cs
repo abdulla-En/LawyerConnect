@@ -106,6 +106,33 @@ namespace LawyerConnect.Services
                         await _context.SaveChangesAsync();
                     }
 
+                    // Generate default pricing matrix for each assigned specialization
+                    // against all interaction types so the lawyer is immediately bookable.
+                    var interactionTypes = _context.InteractionTypes.ToList();
+                    var basePrice = dto.Lawyer.BaseHourlyRate > 0 ? dto.Lawyer.BaseHourlyRate : 500m;
+
+                    if (interactionTypes.Any() && validSpecializationIds.Any())
+                    {
+                        var pricingRows = new List<LawyerPricing>();
+                        foreach (var specId in validSpecializationIds)
+                        {
+                            foreach (var interactionType in interactionTypes)
+                            {
+                                pricingRows.Add(new LawyerPricing
+                                {
+                                    LawyerId = lawyer.Id,
+                                    SpecializationId = specId,
+                                    InteractionTypeId = interactionType.Id,
+                                    Price = basePrice,
+                                    DurationMinutes = 60
+                                });
+                            }
+                        }
+
+                        _context.LawyerPricings.AddRange(pricingRows);
+                        await _context.SaveChangesAsync();
+                    }
+
                     _logger.LogInformation($"Lawyer profile created for user {user.Id} with {validSpecializationIds.Count} specializations");
                 }
 
@@ -113,10 +140,13 @@ namespace LawyerConnect.Services
                 await transaction.CommitAsync();
                 _logger.LogInformation($"User {user.Id} ({user.Email}) registered successfully with role {role}");
 
+                // Generate access token on registration so authenticated follow-up actions work.
+                var accessToken = GenerateJwt(user.Id, user.Email, user.Role, out var expiresAt);
+
                 return new AuthResponseDto
                 {
-                    Token = null, // No token on registration
-                    ExpiresAt = null,
+                    Token = accessToken,
+                    ExpiresAt = expiresAt,
                     User = user.ToUserResponseDto()
                 };
             }

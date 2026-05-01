@@ -25,13 +25,16 @@ export default function BookingCalendar({ lawyerId, onSuccess, onCancel }: Booki
     const loadPricingOptions = async () => {
       setIsPricingLoading(true)
       try {
-        const [pricingData, typesData, specsData] = await Promise.all([
-          apiService.getLawyerPricing(lawyerId),
+        // Only fetch pricing - specializations and interaction types are cached globally
+        const pricingData = await apiService.getLawyerPricing(lawyerId)
+        setPricings(pricingData)
+
+        // Load types and specs from cache or API (will be cached by api service)
+        const [typesData, specsData] = await Promise.all([
           apiService.getInteractionTypes(),
           apiService.getSpecializations()
         ])
 
-        setPricings(pricingData)
         setInteractionTypes(typesData)
         setSpecializations(specsData)
 
@@ -80,6 +83,12 @@ export default function BookingCalendar({ lawyerId, onSuccess, onCancel }: Booki
         interactionTypeId,
         date: dateTime
       })
+      
+      // Clear booking caches after successful booking
+      sessionStorage.removeItem('user_bookings_cache')
+      sessionStorage.removeItem('user_bookings_cache_timestamp')
+      sessionStorage.removeItem('lawyer_bookings_cache')
+      sessionStorage.removeItem('lawyer_bookings_cache_timestamp')
       
       onSuccess()
     } catch (err) {

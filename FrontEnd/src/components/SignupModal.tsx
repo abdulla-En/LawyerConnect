@@ -92,8 +92,16 @@ export default function SignupModal({ onClose, onSwitchToLogin }: SignupModalPro
     }
 
     if (role === 'Lawyer') {
-      if (selectedSpecializations.length === 0 || !experienceYears || !address) {
-        setLocalError('Please fill in all lawyer profile fields and select at least one specialization')
+      if (selectedSpecializations.length === 0) {
+        setLocalError('Please select at least one specialization')
+        return
+      }
+      if (!experienceYears || !address) {
+        setLocalError('Please fill in all lawyer profile fields')
+        return
+      }
+      if (parseInt(experienceYears) < 0 || parseInt(experienceYears) > 100) {
+        setLocalError('Experience years must be between 0 and 100')
         return
       }
     }
@@ -107,45 +115,26 @@ export default function SignupModal({ onClose, onSwitchToLogin }: SignupModalPro
       setIsSubmitting(true)
       
       await register({
-        fullName,
-        email,
-        password,
-        phone,
-        city,
-        role: role === 'Admin' ? 'Admin' : role,
-        adminSecret: role === 'Admin' ? adminSecret : undefined,
+        user: {
+          fullName,
+          email,
+          password,
+          phone,
+          city,
+          role: role === 'Admin' ? 'Admin' : role,
+          adminSecret: role === 'Admin' ? adminSecret : undefined,
+        },
+        lawyer: role === 'Lawyer'
+          ? {
+              experienceYears: parseInt(experienceYears),
+              address,
+              latitude: 30.0444,
+              longitude: 31.2357,
+              specializationIds: selectedSpecializations,
+              baseHourlyRate: parseFloat(baseHourlyRate) || 0,
+            }
+          : undefined,
       })
-
-      if (role === 'Lawyer') {
-        try {
-          let attempts = 0
-          const maxAttempts = 10
-          while (!localStorage.getItem('authToken') && attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 200))
-            attempts++
-          }
-          
-          const token = localStorage.getItem('authToken')
-          if (!token) {
-            throw new Error('Authentication token not available after registration.')
-          }
-          
-          await apiService.registerLawyer({
-            experienceYears: parseInt(experienceYears),
-            address,
-            latitude: 30.0444,
-            longitude: 31.2357,
-            specializationIds: selectedSpecializations,
-            baseHourlyRate: parseFloat(baseHourlyRate) || 0,
-          })
-        } catch (lawyerErr) {
-          const message = lawyerErr instanceof Error ? lawyerErr.message : 'Failed to create lawyer profile'
-          setLocalError(`Account created but lawyer profile failed: ${message}`)
-          setIsSubmitting(false)
-          setTimeout(() => onClose(), 3000)
-          return
-        }
-      }
       
       onClose()
       setTimeout(() => {
@@ -379,14 +368,23 @@ export default function SignupModal({ onClose, onSwitchToLogin }: SignupModalPro
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Base Hourly Fare</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Base Hourly Rate (Optional)</label>
                 <div className="relative">
-                  <input type="number" value={baseHourlyRate} onChange={(e) => setBaseHourlyRate(e.target.value)} placeholder="500" required={role === 'Lawyer'} min="0" step="50" disabled={isLoading || isSubmitting}
-                    className="w-full pl-4 pr-16 py-3 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:opacity-50 text-gray-900 dark:text-white" />
+                  <input 
+                    type="number" 
+                    value={baseHourlyRate} 
+                    onChange={(e) => setBaseHourlyRate(e.target.value)} 
+                    placeholder="500" 
+                    min="0" 
+                    step="50" 
+                    disabled={isLoading || isSubmitting}
+                    className="w-full pl-4 pr-16 py-3 bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:opacity-50 text-gray-900 dark:text-white" 
+                  />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                     <span className="text-gray-500 dark:text-gray-400 font-medium">EGP</span>
                   </div>
                 </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty to set later</p>
               </div>
             </motion.div>
           )}
@@ -395,9 +393,9 @@ export default function SignupModal({ onClose, onSwitchToLogin }: SignupModalPro
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1 rounded" />
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {t.auth.agreeToTerms}{' '}
-              <a href="#" className="text-primary-600 dark:text-primary-400 hover:underline">{t.auth.termsOfService}</a>{' '}
+              <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">{t.auth.termsOfService}</a>{' '}
               {t.auth.and}{' '}
-              <a href="#" className="text-primary-600 dark:text-primary-400 hover:underline">{t.auth.privacyPolicy}</a>
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline">{t.auth.privacyPolicy}</a>
             </span>
           </label>
 

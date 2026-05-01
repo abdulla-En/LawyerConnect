@@ -10,6 +10,7 @@ namespace LawyerConnect.Services
         Task<LawyerResponseDto?> GetByIdAsync(int id);
         Task<LawyerResponseDto?> GetByUserIdAsync(int userId);
         Task<IEnumerable<LawyerResponseDto>> GetPagedAsync(int page, int limit);
+        Task<List<LawyerResponseDto>> GetFeaturedLawyersAsync(int limit = 3);
         Task VerifyLawyerAsync(int id);
         Task<List<LawyerResponseDto>> SearchLawyersAsync(LawyerSearchDto filters);
     }

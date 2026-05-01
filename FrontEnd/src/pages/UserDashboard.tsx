@@ -31,7 +31,24 @@ export default function UserDashboard() {
     try {
       switch (tab) {
         case 'appointments':
-          setBookings(await apiService.getUserBookings())
+          // Check cache first (2 minute TTL)
+          const cachedBookings = sessionStorage.getItem('user_bookings_cache')
+          const cacheTimestamp = sessionStorage.getItem('user_bookings_cache_timestamp')
+          const CACHE_TTL = 2 * 60 * 1000 // 2 minutes
+          
+          if (cachedBookings && cacheTimestamp) {
+            const age = Date.now() - parseInt(cacheTimestamp)
+            if (age < CACHE_TTL) {
+              setBookings(JSON.parse(cachedBookings))
+              setIsLoading(false)
+              return
+            }
+          }
+          
+          const bookingsData = await apiService.getUserBookings()
+          setBookings(bookingsData)
+          sessionStorage.setItem('user_bookings_cache', JSON.stringify(bookingsData))
+          sessionStorage.setItem('user_bookings_cache_timestamp', Date.now().toString())
           break
         case 'payments':
           setPayments(await apiService.getUserPayments())

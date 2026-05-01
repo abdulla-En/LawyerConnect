@@ -71,6 +71,22 @@ namespace LawyerConnect.Controllers
             }
         }
 
+        [HttpGet("featured")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<ReviewResponseDto>>> GetFeaturedReviews([FromQuery] int limit = 3)
+        {
+            try
+            {
+                var reviews = await _reviewService.GetFeaturedReviewsAsync(limit);
+                return Ok(reviews);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving featured reviews");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteReview(int id)

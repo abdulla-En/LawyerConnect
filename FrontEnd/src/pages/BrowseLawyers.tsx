@@ -9,30 +9,47 @@ export default function BrowseLawyers() {
   const navigate = useNavigate()
   const [lawyers, setLawyers] = useState<LawyerResponseDto[]>([])
   const [filteredLawyers, setFilteredLawyers] = useState<LawyerResponseDto[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [hasLoaded, setHasLoaded] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedSpecialization, setSelectedSpecialization] = useState('All')
-  const [specializations, setSpecializations] = useState<string[]>(['All'])
+  const [selectedSpecializationId, setSelectedSpecializationId] = useState<number | null>(null)
+  const [specializations, setSpecializations] = useState<SpecializationDto[]>([])
 
   useEffect(() => {
-    // Only load if we haven't loaded yet
-    if (!hasLoaded) {
-      loadLawyers()
-      loadSpecializations()
-    }
-  }, [hasLoaded])
+    // Load lawyers and specializations on mount
+    loadLawyers()
+    loadSpecializations()
+  }, [])
 
   useEffect(() => {
     filterLawyers()
-  }, [lawyers, searchTerm, selectedSpecialization])
+  }, [lawyers, searchTerm, selectedSpecializationId, specializations])
 
   const loadLawyers = async () => {
     try {
       setIsLoading(true)
+      
+      // Check sessionStorage cache first
+      const cachedLawyers = sessionStorage.getItem('lawyers_cache')
+      const cacheTimestamp = sessionStorage.getItem('lawyers_cache_timestamp')
+      const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+      
+      if (cachedLawyers && cacheTimestamp) {
+        const age = Date.now() - Number.parseInt(cacheTimestamp, 10)
+        if (age < CACHE_DURATION) {
+          // Use cached data
+          setLawyers(JSON.parse(cachedLawyers))
+          setIsLoading(false)
+          return
+        }
+      }
+      
+      // Fetch fresh data
       const data = await apiService.getLawyers(1, 100)
       setLawyers(data)
-      setHasLoaded(true)
+      
+      // Cache the data
+      sessionStorage.setItem('lawyers_cache', JSON.stringify(data))
+      sessionStorage.setItem('lawyers_cache_timestamp', Date.now().toString())
     } catch (error) {
       console.error('Failed to load lawyers:', error)
     } finally {
@@ -43,9 +60,17 @@ export default function BrowseLawyers() {
   const loadSpecializations = async () => {
     try {
       const data = await apiService.getSpecializations()
-      setSpecializations(['All', ...data.map((s: SpecializationDto) => s.name)])
+      setSpecializations(data)
     } catch {
-      setSpecializations(['All', 'Criminal Law', 'Corporate Law', 'Family Law', 'Real Estate', 'Immigration', 'Tax Law', 'Employment Law'])
+      setSpecializations([
+        { id: 1, name: 'Criminal Law' },
+        { id: 2, name: 'Corporate Law' },
+        { id: 3, name: 'Family Law' },
+        { id: 4, name: 'Real Estate' },
+        { id: 5, name: 'Immigration' },
+        { id: 6, name: 'Tax Law' },
+        { id: 7, name: 'Employment Law' },
+      ])
     }
   }
 
@@ -60,9 +85,16 @@ export default function BrowseLawyers() {
       )
     }
 
-    if (selectedSpecialization !== 'All') {
+    if (selectedSpecializationId !== null) {
+      const selectedSpec = specializations.find(s => s.id === selectedSpecializationId)?.name || ''
+      const selectedSpecNormalized = selectedSpec.trim().toLowerCase()
       filtered = filtered.filter(lawyer =>
-        (lawyer.specializations || []).some(s => s === selectedSpecialization)
+        (lawyer.specializations || []).some(s => {
+          const lawyerSpecNormalized = s.trim().toLowerCase()
+          return lawyerSpecNormalized === selectedSpecNormalized
+            || lawyerSpecNormalized.includes(selectedSpecNormalized)
+            || selectedSpecNormalized.includes(lawyerSpecNormalized)
+        })
       )
     }
 
@@ -111,17 +143,27 @@ export default function BrowseLawyers() {
               Specialization
             </label>
             <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedSpecializationId(null)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  selectedSpecializationId === null
+                    ? 'bg-primary-500 text-white shadow-lg'
+                    : 'bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                }`}
+              >
+                All
+              </button>
               {specializations.map(spec => (
                 <button
-                  key={spec}
-                  onClick={() => setSelectedSpecialization(spec)}
+                  key={spec.id}
+                  onClick={() => setSelectedSpecializationId(spec.id)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    selectedSpecialization === spec
+                    selectedSpecializationId === spec.id
                       ? 'bg-primary-500 text-white shadow-lg'
                       : 'bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
                   }`}
                 >
-                  {spec}
+                  {spec.name}
                 </button>
               ))}
             </div>
@@ -129,7 +171,7 @@ export default function BrowseLawyers() {
         </motion.div>
 
         {/* Results */}
-        {isLoading && !hasLoaded ? (
+        {isLoading ? (
           <div className="text-center py-12">
             <div className="inline-block w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">Loading lawyers...</p>
@@ -175,8 +217,8 @@ export default function BrowseLawyers() {
                     {lawyer.fullName}
                   </h3>
                   <div className="flex flex-wrap gap-1.5 mb-4">
-                    {(lawyer.specializations || []).map((spec, i) => (
-                      <span key={i} className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg font-medium">
+                    {(lawyer.specializations || []).map((spec) => (
+                      <span key={`${lawyer.id}-${spec}`} className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg font-medium">
                         {spec}
                       </span>
                     ))}

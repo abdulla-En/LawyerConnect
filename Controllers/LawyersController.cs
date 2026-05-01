@@ -28,22 +28,48 @@ namespace LawyerConnect.Controllers
         [Authorize] // user must be authenticated, userId extracted from token
         public async Task<ActionResult<LawyerResponseDto>> Register([FromBody] LawyerRegisterDto dto)
         {
-            // Extract userId from token
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            try
             {
-                return Unauthorized();
-            }
+                // Log the incoming request
+                _logger.LogInformation($"Lawyer registration attempt - ExperienceYears: {dto.ExperienceYears}, Address: {dto.Address}, SpecializationIds count: {dto.SpecializationIds?.Count ?? 0}, BaseHourlyRate: {dto.BaseHourlyRate}");
+                
+                // Validate model state
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    
+                    _logger.LogWarning($"Lawyer registration validation failed: {string.Join(", ", errors)}");
+                    return BadRequest(new { message = "Validation failed", errors });
+                }
 
-            // Check if user already has a lawyer profile
-            var existingLawyer = await _lawyerService.GetByUserIdAsync(userId);
-            if (existingLawyer != null)
+                // Extract userId from token
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    _logger.LogWarning("Unauthorized lawyer registration attempt - invalid user ID claim");
+                    return Unauthorized();
+                }
+
+                // Check if user already has a lawyer profile
+                var existingLawyer = await _lawyerService.GetByUserIdAsync(userId);
+                if (existingLawyer != null)
+                {
+                    _logger.LogWarning($"Lawyer profile already exists for user {userId}");
+                    return Conflict("Lawyer profile already exists for this user.");
+                }
+
+                var lawyer = await _lawyerService.RegisterLawyerAsync(dto, userId);
+                _logger.LogInformation($"Lawyer profile created successfully for user {userId}");
+                return CreatedAtAction(nameof(GetById), new { id = lawyer.Id }, lawyer);
+            }
+            catch (Exception ex)
             {
-                return Conflict("Lawyer profile already exists for this user.");
+                _logger.LogError(ex, "Error during lawyer registration");
+                return StatusCode(500, new { message = "Internal server error", details = ex.Message });
             }
-
-            var lawyer = await _lawyerService.RegisterLawyerAsync(dto, userId);
-            return CreatedAtAction(nameof(GetById), new { id = lawyer.Id }, lawyer);
         }
 
         [HttpGet("search")]
@@ -68,6 +94,22 @@ namespace LawyerConnect.Controllers
         {
             var result = await _lawyerService.GetPagedAsync(page, limit);
             return Ok(result);
+        }
+
+        [HttpGet("featured")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<LawyerResponseDto>>> GetFeatured([FromQuery] int limit = 3)
+        {
+            try
+            {
+                var lawyers = await _lawyerService.GetFeaturedLawyersAsync(limit);
+                return Ok(lawyers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving featured lawyers");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
         }
 
         [HttpGet("{id}")]

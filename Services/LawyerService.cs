@@ -209,6 +209,51 @@ namespace LawyerConnect.Services
             }
         }
 
+        public async Task<List<LawyerResponseDto>> GetFeaturedLawyersAsync(int limit = 3)
+        {
+            try
+            {
+                _logger.LogInformation($"Retrieving top {limit} featured lawyers");
+
+                // Get all verified lawyers with includes
+                var allLawyers = await _lawyerRepository.GetAllAsync();
+                var verifiedLawyers = allLawyers.Where(l => l.IsVerified).ToList();
+
+                if (!verifiedLawyers.Any())
+                {
+                    _logger.LogInformation("No verified lawyers found");
+                    return new List<LawyerResponseDto>();
+                }
+
+                // Calculate average rating for each lawyer
+                var lawyersWithRatings = verifiedLawyers.Select(l => new
+                {
+                    Lawyer = l,
+                    AvgRating = l.Reviews?.Any() == true 
+                        ? (decimal)l.Reviews.Average(r => r.Rating) 
+                        : 0m,
+                    ReviewCount = l.Reviews?.Count ?? 0
+                }).ToList();
+
+                // Sort by: 1) Average rating (desc), 2) Review count (desc), 3) Created date (desc)
+                var featured = lawyersWithRatings
+                    .OrderByDescending(x => x.AvgRating)
+                    .ThenByDescending(x => x.ReviewCount)
+                    .ThenByDescending(x => x.Lawyer.CreatedAt)
+                    .Take(limit)
+                    .Select(x => x.Lawyer.ToLawyerResponseDto())
+                    .ToList();
+
+                _logger.LogInformation($"Retrieved {featured.Count} featured lawyers");
+                return featured;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve featured lawyers");
+                throw;
+            }
+        }
+
         public async Task<List<LawyerResponseDto>> SearchLawyersAsync(LawyerSearchDto filters)
         {
             try

@@ -19,12 +19,40 @@ namespace LawyerConnect.Middlewares
 
         public async Task InvokeAsync(HttpContext context)
         {
-            // Exempt chat endpoints from rate limiting (they need frequent polling)
             var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
-            if (path.Contains("/api/chat"))
+            var method = context.Request.Method.ToUpperInvariant();
+
+            // Exempt endpoints from rate limiting
+            if (path.Contains("/api/chat") || 
+                path.Contains("/api/specializations") || 
+                path.Contains("/api/interactiontypes"))
             {
                 await _next(context);
                 return;
+            }
+
+            // Determine rate limit based on endpoint type
+            int effectiveLimit = _limit;
+            
+            // Higher limit for pricing endpoints (20 requests/60s)
+            if (path.Contains("/api/lawyers") && path.Contains("/pricing"))
+            {
+                effectiveLimit = 20;
+            }
+            // Higher limit for GET requests to lawyers (30 requests/60s)
+            else if (path.Contains("/api/lawyers") && method == "GET")
+            {
+                effectiveLimit = 30;
+            }
+            // Standard limit for auth endpoints (5 requests/60s)
+            else if (path.Contains("/api/auth"))
+            {
+                effectiveLimit = 5;
+            }
+            // Medium limit for other endpoints (10 requests/60s)
+            else
+            {
+                effectiveLimit = 10;
             }
 
             var key = $"{context.Connection.RemoteIpAddress}-{context.Request.Path.Value}".ToLowerInvariant();
@@ -35,18 +63,18 @@ namespace LawyerConnect.Middlewares
             lock (entries)
             {
                 entries.RemoveAll(t => t <= now - _window);
-                if (entries.Count >= _limit)
+                if (entries.Count >= effectiveLimit)
                 {
                     var reset = entries.First() + _window;
                     context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                    context.Response.Headers["X-RateLimit-Limit"] = _limit.ToString();
+                    context.Response.Headers["X-RateLimit-Limit"] = effectiveLimit.ToString();
                     context.Response.Headers["X-RateLimit-Remaining"] = "0";
                     context.Response.Headers["X-RateLimit-Reset"] = ((long)(reset - now).TotalSeconds).ToString();
                     return;
                 }
                 entries.Add(now);
-                context.Response.Headers["X-RateLimit-Limit"] = _limit.ToString();
-                context.Response.Headers["X-RateLimit-Remaining"] = (_limit - entries.Count).ToString();
+                context.Response.Headers["X-RateLimit-Limit"] = effectiveLimit.ToString();
+                context.Response.Headers["X-RateLimit-Remaining"] = (effectiveLimit - entries.Count).ToString();
                 context.Response.Headers["X-RateLimit-Reset"] = ((long)_window.TotalSeconds).ToString();
             }
 

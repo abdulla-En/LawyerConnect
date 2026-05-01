@@ -249,9 +249,12 @@ export default function Navbar({ isDark, toggleTheme, onLoginClick, onSignupClic
 
             {/* User Menu */}
             {isLoggedIn ? (
-              <div className="relative">
+              <div 
+                className="relative"
+                onMouseEnter={() => setShowUserMenu(true)}
+                onMouseLeave={() => setShowUserMenu(false)}
+              >
                 <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-dark-800 rounded-xl hover:bg-gray-200 dark:hover:bg-dark-700 transition-colors"
                 >
                   {user?.profilePhoto ? (
@@ -265,31 +268,36 @@ export default function Navbar({ isDark, toggleTheme, onLoginClick, onSignupClic
                 </button>
 
                 {showUserMenu && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-xl shadow-xl border border-gray-200 dark:border-dark-700 py-2">
-                    <div className="px-4 py-2 border-b border-gray-200 dark:border-dark-700">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.fullName}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
-                      <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">{user?.role}</p>
-                    </div>
-                    <button onClick={() => { navigate('/dashboard'); setShowUserMenu(false) }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center gap-2">
-                      <Calendar className="w-4 h-4" /> {t.nav.myAppointments}
-                    </button>
-                    <button onClick={() => { navigate('/account'); setShowUserMenu(false) }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center gap-2">
-                      <Settings className="w-4 h-4" /> {t.nav.accountSettings}
-                    </button>
-                    {user?.role === 'Admin' && (
-                      <button onClick={() => { navigate('/admin'); setShowUserMenu(false) }}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2">
-                        <Shield className="w-4 h-4" /> Admin Dashboard
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute right-0 top-full pt-2 w-48 z-50"
+                  >
+                    <div className="bg-white dark:bg-dark-800 rounded-xl shadow-xl border border-gray-200 dark:border-dark-700 py-2">
+                      <div className="px-4 py-2 border-b border-gray-200 dark:border-dark-700">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.fullName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                        <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">{user?.role}</p>
+                      </div>
+                      <button onClick={() => { navigate('/dashboard'); setShowUserMenu(false) }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center gap-2">
+                        <Calendar className="w-4 h-4" /> {t.nav.myAppointments}
                       </button>
-                    )}
-                    <button onClick={handleLogout}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2">
-                      <LogOut className="w-4 h-4" /> {t.nav.logout}
-                    </button>
+                      <button onClick={() => { navigate('/account'); setShowUserMenu(false) }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center gap-2">
+                        <Settings className="w-4 h-4" /> {t.nav.accountSettings}
+                      </button>
+                      {user?.role === 'Admin' && (
+                        <button onClick={() => { navigate('/admin'); setShowUserMenu(false) }}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2">
+                          <Shield className="w-4 h-4" /> Admin Dashboard
+                        </button>
+                      )}
+                      <button onClick={handleLogout}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2">
+                        <LogOut className="w-4 h-4" /> {t.nav.logout}
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </div>

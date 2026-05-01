@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '../services/api';
-import type { UserResponseDto, LoginDto, UserRegisterDto } from '../types';
+import type { UserResponseDto, LoginDto, RegisterRequestDto } from '../types';
 
 interface AuthContextType {
   user: UserResponseDto | null;
@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   login: (data: LoginDto) => Promise<void>;
-  register: (data: UserRegisterDto) => Promise<void>;
+  register: (data: RegisterRequestDto) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   updateUser: (updates: Partial<UserResponseDto>) => void;
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (data: UserRegisterDto) => {
+  const register = async (data: RegisterRequestDto) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -86,6 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('user');
     setUser(null);
     setError(null);
+    
+    // Clear all API caches on logout
+    apiService.clearAllCaches();
   };
 
   const clearError = () => {

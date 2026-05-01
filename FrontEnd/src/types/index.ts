@@ -146,6 +146,11 @@ export interface LawyerRegisterDto {
   baseHourlyRate?: number;
 }
 
+export interface RegisterRequestDto {
+  user: UserRegisterDto;
+  lawyer?: LawyerRegisterDto;
+}
+
 export interface BookingDto {
   lawyerId: number;
   date: string;
