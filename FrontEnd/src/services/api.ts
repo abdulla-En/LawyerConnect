@@ -19,7 +19,29 @@ import type {
   UserResponseDto,
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5128/api';
+function resolveApiBaseUrl(): string {
+  const normalize = (value: string) =>
+    value.endsWith('/api') ? value : `${value.replace(/\/$/, '')}/api`;
+
+  const viteUrl = import.meta.env.VITE_API_URL;
+  if (viteUrl) {
+    return viteUrl.startsWith('/') ? viteUrl : normalize(viteUrl);
+  }
+
+  const legacyUrl =
+    import.meta.env.VITE_API_BASE_URL || import.meta.env.NEXT_PUBLIC_API_BASE_URL;
+  if (legacyUrl) {
+    return legacyUrl.startsWith('/') ? legacyUrl : normalize(legacyUrl);
+  }
+
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+
+  return 'http://localhost:5128/api';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 // Request deduplication cache for GET requests
 const pendingRequests = new Map<string, Promise<any>>();

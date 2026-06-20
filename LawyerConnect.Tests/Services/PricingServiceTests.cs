@@ -28,6 +28,7 @@ namespace LawyerConnect.Tests.Services
                 .Options;
 
             _context = new LawyerConnectDbContext(options);
+            SeedPricingDependencies();
             _pricingRepositoryMock = new Mock<IPricingRepository>();
             _lawyerRepositoryMock = new Mock<ILawyerRepository>();
             _specializationRepositoryMock = new Mock<ISpecializationRepository>();
@@ -329,6 +330,25 @@ namespace LawyerConnect.Tests.Services
         public void Dispose()
         {
             _context.Dispose();
+        }
+
+        private void SeedPricingDependencies(int lawyerId = 1, int specializationId = 1)
+        {
+            if (!_context.InteractionTypes.Any())
+            {
+                _context.InteractionTypes.Add(new InteractionType { Id = 1, Name = "Consultation" });
+            }
+
+            if (!_context.LawyerSpecializations.Any(ls => ls.LawyerId == lawyerId && ls.SpecializationId == specializationId))
+            {
+                _context.LawyerSpecializations.Add(new LawyerSpecialization
+                {
+                    LawyerId = lawyerId,
+                    SpecializationId = specializationId
+                });
+            }
+
+            _context.SaveChanges();
         }
     }
 }

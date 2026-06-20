@@ -241,16 +241,13 @@ namespace LawyerConnect.Tests.Services
             _bookingRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(booking);
             _bookingRepositoryMock.Setup(x => x.UpdateAsync(It.IsAny<Booking>())).Returns(Task.CompletedTask);
             _notificationRepositoryMock.Setup(x => x.AddAsync(It.IsAny<Notification>())).Returns(Task.CompletedTask);
+            _configurationMock.Setup(x => x["Stripe:SecretKey"]).Returns("YOUR_STRIPE_SECRET_KEY_HERE");
 
-            // Note: This test will fail when actually calling Stripe API
-            // In a real scenario, you would mock the Stripe service or use integration tests
-            // For now, we test the validation logic only
+            await _paymentService.RefundPaymentAsync(1);
 
-            // Act & Assert - This will throw because we can't actually call Stripe in unit tests
-            // In production, you would inject a Stripe service interface and mock it
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await _paymentService.RefundPaymentAsync(1)
-            );
+            _paymentSessionRepositoryMock.Verify(x => x.UpdateAsync(It.Is<PaymentSession>(s => s.Status == "Refunded")), Times.Once);
+            _bookingRepositoryMock.Verify(x => x.UpdateAsync(It.Is<Booking>(b => b.PaymentStatus == "Refunded")), Times.Once);
+            _notificationRepositoryMock.Verify(x => x.AddAsync(It.IsAny<Notification>()), Times.Exactly(2));
         }
 
         [Fact]

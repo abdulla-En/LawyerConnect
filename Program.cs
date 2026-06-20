@@ -25,12 +25,40 @@ builder.Services.AddEndpointsApiExplorer(); // to access end_point by swagger
 builder.Services.AddSwaggerGen(); // to add swagger service 
 
 // Add CORS into DIcontainer
+var configuredCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:5173"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-    {   // determine the general setting of the CORS service : specially determine the policy of the usage 
-        policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:5173")
-            .AllowAnyMethod()
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin))
+                    return false;
+
+                if (configuredCorsOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+                    return true;
+
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                    return false;
+
+                if (uri.Host is "localhost" or "127.0.0.1")
+                    return true;
+
+                // Allow LAN devices to reach the API during local development
+                return uri.Host.StartsWith("192.168.", StringComparison.Ordinal)
+                    || uri.Host.StartsWith("10.", StringComparison.Ordinal);
+            });
+        }
+        else
+        {
+            policy.WithOrigins(configuredCorsOrigins);
+        }
+
+        policy.AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
     });
@@ -135,6 +163,9 @@ using (var scope = app.Services.CreateScope())
         // Now migrate the database
         dbContext.Database.Migrate();
         logger.LogInformation("Database migrated successfully.");
+
+        await DbSeeder.SeedAsync(dbContext, logger);
+        logger.LogInformation("Database seed data ensured.");
     }
     catch (Exception ex)
     {

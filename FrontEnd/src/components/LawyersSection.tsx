@@ -19,11 +19,27 @@ export default function LawyersSection() {
     try {
       setIsLoading(true)
       setError('')
-      const data = await apiService.getFeaturedLawyers(3)
+      let data: LawyerResponseDto[] = []
+
+      try {
+        data = await apiService.getFeaturedLawyers(3)
+      } catch (featuredError) {
+        console.warn('Featured lawyers endpoint failed, falling back to lawyer list:', featuredError)
+        const allLawyers = await apiService.getLawyers(1, 100)
+        data = allLawyers
+          .filter((lawyer) => lawyer.isVerified)
+          .sort((a, b) => {
+            const ratingDiff = (b.averageRating ?? 0) - (a.averageRating ?? 0)
+            if (ratingDiff !== 0) return ratingDiff
+            return (b.reviewCount ?? 0) - (a.reviewCount ?? 0)
+          })
+          .slice(0, 3)
+      }
+
       setLawyers(data)
     } catch (err) {
       console.error('Failed to load featured lawyers:', err)
-      setError('Failed to load lawyers')
+      setError('Failed to load lawyers. Make sure the backend is running.')
     } finally {
       setIsLoading(false)
     }

@@ -449,6 +449,107 @@ namespace LawyerConnect.Tests.Services
                 _service.SearchLawyersAsync(filters));
         }
 
+        [Fact]
+        public async Task GetFeaturedLawyersAsync_ReturnsOnlyVerifiedLawyers()
+        {
+            // Arrange
+            var lawyers = new List<Lawyer>
+            {
+                new Lawyer
+                {
+                    Id = 1,
+                    UserId = 1,
+                    ExperienceYears = 5,
+                    Address = "Address 1",
+                    IsVerified = true,
+                    AverageRating = 4.5m,
+                    CreatedAt = DateTime.UtcNow,
+                    User = new User { Id = 1, Email = "verified@example.com", FullName = "Verified Lawyer", PasswordHash = "hash", Role = "Lawyer", CreatedAt = DateTime.UtcNow },
+                    Reviews = new List<Review> { new Review { Id = 1, Rating = 5, LawyerId = 1, UserId = 2, CreatedAt = DateTime.UtcNow } }
+                },
+                new Lawyer
+                {
+                    Id = 2,
+                    UserId = 2,
+                    ExperienceYears = 3,
+                    Address = "Address 2",
+                    IsVerified = false,
+                    CreatedAt = DateTime.UtcNow,
+                    User = new User { Id = 2, Email = "pending@example.com", FullName = "Pending Lawyer", PasswordHash = "hash", Role = "Lawyer", CreatedAt = DateTime.UtcNow }
+                }
+            };
+
+            _lawyerRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync(lawyers);
+
+            // Act
+            var result = await _service.GetFeaturedLawyersAsync(3);
+
+            // Assert
+            result.Should().HaveCount(1);
+            result[0].FullName.Should().Be("Verified Lawyer");
+        }
+
+        [Fact]
+        public async Task GetFeaturedLawyersAsync_OrdersByRatingThenReviewCount()
+        {
+            // Arrange
+            var lawyers = new List<Lawyer>
+            {
+                new Lawyer
+                {
+                    Id = 1,
+                    UserId = 1,
+                    ExperienceYears = 5,
+                    Address = "Address 1",
+                    IsVerified = true,
+                    CreatedAt = DateTime.UtcNow.AddDays(-2),
+                    User = new User { Id = 1, Email = "lawyer1@example.com", FullName = "Lower Rated", PasswordHash = "hash", Role = "Lawyer", CreatedAt = DateTime.UtcNow },
+                    Reviews = new List<Review>
+                    {
+                        new Review { Id = 1, Rating = 3, LawyerId = 1, UserId = 10, CreatedAt = DateTime.UtcNow }
+                    }
+                },
+                new Lawyer
+                {
+                    Id = 2,
+                    UserId = 2,
+                    ExperienceYears = 8,
+                    Address = "Address 2",
+                    IsVerified = true,
+                    CreatedAt = DateTime.UtcNow,
+                    User = new User { Id = 2, Email = "lawyer2@example.com", FullName = "Top Rated", PasswordHash = "hash", Role = "Lawyer", CreatedAt = DateTime.UtcNow },
+                    Reviews = new List<Review>
+                    {
+                        new Review { Id = 2, Rating = 5, LawyerId = 2, UserId = 11, CreatedAt = DateTime.UtcNow },
+                        new Review { Id = 3, Rating = 5, LawyerId = 2, UserId = 12, CreatedAt = DateTime.UtcNow }
+                    }
+                }
+            };
+
+            _lawyerRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync(lawyers);
+
+            // Act
+            var result = await _service.GetFeaturedLawyersAsync(2);
+
+            // Assert
+            result.Should().HaveCount(2);
+            result[0].FullName.Should().Be("Top Rated");
+            result[1].FullName.Should().Be("Lower Rated");
+        }
+
+        [Fact]
+        public async Task GetFeaturedLawyersAsync_WhenNoVerifiedLawyers_ReturnsEmptyList()
+        {
+            // Arrange
+            _lawyerRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync(new List<Lawyer>());
+
+            // Act
+            var result = await _service.GetFeaturedLawyersAsync(3);
+
+            // Assert
+            result.Should().BeEmpty();
+        }
+
         public void Dispose()
         {
             _context.Dispose();

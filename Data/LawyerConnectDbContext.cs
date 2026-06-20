@@ -68,6 +68,10 @@ namespace LawyerConnect.Data
                 .Property(l => l.Longitude)
                 .HasColumnType("decimal(10,8)");
 
+                modelBuilder.Entity<Lawyer>()
+                .Property(l => l.AverageRating)
+                .HasColumnType("decimal(18,2)");
+
                 modelBuilder.Entity<PaymentSession>()
                 .Property(p => p.Amount)
                 .HasColumnType("decimal(18,2)");
